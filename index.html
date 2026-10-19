@@ -1,0 +1,2668 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>DuckAnimación — Estudio de Animación Cuadro por Cuadro</title>
+<style>
+/* =========================================================
+   VARIABLES Y RESET
+   ========================================================= */
+:root{
+  --bg:            #16161f;
+  --panel:         #1e1e2f;
+  --panel-2:       #2a2a40;
+  --panel-3:       #34344d;
+  --border:        #3a3a55;
+  --text:          #e8e8f0;
+  --text-dim:      #9a9ab5;
+  --accent:        #6c63ff;
+  --accent-2:      #8a83ff;
+  --accent-glow:   rgba(108,99,255,.35);
+  --danger:        #ff5c7a;
+  --ok:            #38d39f;
+  --warn:          #ffb454;
+  --radius:        10px;
+  --radius-sm:     7px;
+  --shadow:        0 10px 30px rgba(0,0,0,.45);
+  --header-h:      58px;
+  --footer-h:      196px;
+  --sidebar-w:     292px;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{height:100%}
+body{
+  font-family:"Segoe UI",Inter,system-ui,-apple-system,Roboto,Arial,sans-serif;
+  background:var(--bg);
+  color:var(--text);
+  overflow:hidden;
+  font-size:13px;
+  -webkit-user-select:none;user-select:none;
+}
+button,input,select{font-family:inherit;font-size:inherit;color:inherit}
+::-webkit-scrollbar{width:10px;height:10px}
+::-webkit-scrollbar-track{background:transparent}
+::-webkit-scrollbar-thumb{background:var(--panel-3);border-radius:8px;border:2px solid transparent;background-clip:padding-box}
+::-webkit-scrollbar-thumb:hover{background:#4a4a6a;background-clip:padding-box}
+
+/* =========================================================
+   LAYOUT GENERAL
+   ========================================================= */
+#app{
+  display:grid;
+  grid-template-rows:var(--header-h) 1fr var(--footer-h);
+  grid-template-columns:var(--sidebar-w) 1fr;
+  grid-template-areas:
+    "header  header"
+    "sidebar stage"
+    "footer  footer";
+  height:100vh;
+  width:100vw;
+}
+
+/* ---------- HEADER ---------- */
+header{
+  grid-area:header;
+  display:flex;align-items:center;gap:14px;
+  padding:0 16px;
+  background:linear-gradient(180deg,#22223a,#1b1b2b);
+  border-bottom:1px solid var(--border);
+  z-index:20;
+}
+.brand{display:flex;align-items:center;gap:10px;font-weight:700;font-size:15px;letter-spacing:.3px;white-space:nowrap}
+.brand .logo{
+  width:30px;height:30px;border-radius:9px;display:grid;place-items:center;font-size:16px;
+  background:linear-gradient(135deg,var(--accent),#a06bff);
+  box-shadow:0 0 14px var(--accent-glow);
+}
+.brand small{display:block;font-weight:400;font-size:10px;color:var(--text-dim);letter-spacing:.4px}
+.header-actions{display:flex;align-items:center;gap:8px;margin-left:auto;flex-wrap:wrap}
+.spacer{flex:1}
+
+/* ---------- BOTONES ---------- */
+.btn{
+  display:inline-flex;align-items:center;gap:6px;
+  padding:8px 12px;border-radius:var(--radius-sm);
+  background:var(--panel-2);border:1px solid var(--border);
+  cursor:pointer;transition:.16s ease;white-space:nowrap;
+  font-weight:500;
+}
+.btn:hover{background:var(--panel-3);border-color:#4d4d70;transform:translateY(-1px)}
+.btn:active{transform:translateY(0)}
+.btn.primary{background:linear-gradient(135deg,var(--accent),#7d5cff);border-color:transparent;box-shadow:0 4px 14px var(--accent-glow)}
+.btn.primary:hover{filter:brightness(1.1)}
+.btn.danger{color:var(--danger)}
+.btn.ghost{background:transparent}
+.btn.sm{padding:6px 9px;font-size:12px}
+.btn.icon{padding:7px 9px}
+.btn:disabled{opacity:.45;cursor:not-allowed;transform:none}
+.btn.active{background:var(--accent);border-color:var(--accent)}
+
+/* ---------- SIDEBAR ---------- */
+aside.sidebar{
+  grid-area:sidebar;
+  background:var(--panel);
+  border-right:1px solid var(--border);
+  overflow-y:auto;
+  overscroll-behavior:contain;
+  padding:10px 12px 16px;
+  display:flex;flex-direction:column;gap:0;
+  min-height:0;
+}
+.panel{
+  flex:0 0 auto;
+  min-width:0;
+  background:var(--panel-2);
+  border:1px solid var(--border);
+  border-radius:var(--radius);
+  overflow:hidden;
+  margin-bottom:12px;
+}
+.panel:last-child{margin-bottom:0}
+.panel > h3{
+  display:flex;align-items:center;gap:8px;flex-wrap:wrap;
+  margin:8px 0 6px 0;line-height:1.45;
+  font-size:11.5px;text-transform:uppercase;letter-spacing:.7px;color:var(--text-dim);
+  padding:10px 12px;background:#26263c;border-bottom:1px solid var(--border);
+  font-weight:700;
+}
+.panel > h3 .chev{margin-left:auto;font-size:10px;color:var(--text-dim)}
+.panel .body{padding:10px 12px 12px;display:flex;flex-direction:column;gap:10px;min-width:0}
+.panel .body > *{max-width:100%}
+.hint{font-size:11px;color:var(--text-dim);line-height:1.5}
+
+/* Cargador de archivos estilizado */
+.file-drop{
+  display:flex;flex-direction:column;align-items:center;justify-content:center;
+  width:100%;margin-top:6px;box-sizing:border-box;
+  border:1.5px dashed var(--border);border-radius:var(--radius-sm);
+  padding:12px 10px;text-align:center;cursor:pointer;transition:.16s;
+  color:var(--text-dim);font-size:12px;line-height:1.5;background:rgba(0,0,0,.12);
+}
+.file-drop:hover{border-color:var(--accent);color:var(--accent-2);background:rgba(108,99,255,.08)}
+.file-drop strong{display:block;color:var(--text);font-size:12px;margin-bottom:3px;line-height:1.4}
+.file-drop input{display:none}
+
+/* Galería de recursos */
+.asset-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+.asset{
+  position:relative;aspect-ratio:1/1;border-radius:8px;overflow:hidden;
+  background:#101018 url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='16' height='16'><rect width='8' height='8' fill='%2320202e'/><rect x='8' y='8' width='8' height='8' fill='%2320202e'/></svg>");
+  border:1px solid var(--border);cursor:pointer;transition:.15s;
+}
+.asset:hover{border-color:var(--accent);transform:scale(1.04)}
+.asset img{width:100%;height:100%;object-fit:contain;display:block}
+.asset .name{
+  position:absolute;left:0;right:0;bottom:0;font-size:9px;padding:2px 4px;
+  background:rgba(0,0,0,.7);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
+}
+.asset .del{
+  position:absolute;top:3px;right:3px;width:17px;height:17px;border-radius:50%;
+  background:rgba(255,92,122,.9);color:#fff;font-size:11px;line-height:17px;text-align:center;
+  opacity:0;transition:.15s;border:none;cursor:pointer;
+}
+.asset:hover .del{opacity:1}
+.asset .tools{position:absolute;top:3px;left:3px;display:flex;gap:3px;z-index:2}
+.asset .tools button{
+  width:19px;height:19px;border-radius:6px;border:none;cursor:pointer;padding:0;
+  background:rgba(108,99,255,.92);color:#fff;font-size:11px;line-height:19px;text-align:center;
+  opacity:0;transition:.15s;
+}
+.asset:hover .tools button{opacity:1}
+.asset .tools button.restore{background:rgba(56,211,159,.92)}
+.asset .tools button:hover{filter:brightness(1.18)}
+.asset .badge-bg{
+  position:absolute;top:3px;left:3px;z-index:1;font-size:9px;font-weight:700;color:#fff;
+  background:rgba(108,99,255,.92);border-radius:6px;padding:1px 5px;pointer-events:none;
+}
+.empty-note{font-size:11px;color:var(--text-dim);text-align:center;padding:8px 0}
+
+/* Campos de formulario */
+.field{display:flex;flex-direction:column;gap:5px}
+.field label{font-size:11px;color:var(--text-dim);font-weight:600;letter-spacing:.3px}
+.field input[type=text],
+.field input[type=number],
+.field select{
+  width:100%;padding:7px 9px;border-radius:var(--radius-sm);
+  background:#15151f;border:1px solid var(--border);outline:none;transition:.15s;
+}
+.field input:focus,.field select:focus{border-color:var(--accent);box-shadow:0 0 0 3px var(--accent-glow)}
+.field input[type=color]{
+  width:100%;height:34px;padding:2px;border-radius:var(--radius-sm);
+  background:#15151f;border:1px solid var(--border);cursor:pointer;
+}
+.row{display:flex;gap:8px;align-items:center}
+.row > *{flex:1;min-width:0}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.grid3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px}
+
+/* Interruptor (switch) */
+.switch{display:flex;align-items:center;gap:9px;cursor:pointer;user-select:none}
+.switch input{display:none}
+.switch .track{
+  width:38px;height:21px;border-radius:20px;background:#3c3c56;position:relative;
+  transition:.2s;flex:none;border:1px solid var(--border);
+}
+.switch .track::after{
+  content:"";position:absolute;top:2px;left:2px;width:15px;height:15px;border-radius:50%;
+  background:#8f8fb0;transition:.2s;
+}
+.switch input:checked + .track{background:var(--accent);border-color:var(--accent)}
+.switch input:checked + .track::after{left:19px;background:#fff}
+.switch .label{font-size:12px;font-weight:600}
+.switch .sub{display:block;font-size:10px;color:var(--text-dim);font-weight:400}
+
+/* ---------- CAPAS / OBJETOS ---------- */
+.layer-list{display:flex;flex-direction:column;gap:5px;max-height:232px;overflow-y:auto}
+.layer-row{
+  display:flex;align-items:center;gap:6px;padding:4px;border-radius:7px;
+  border:1px solid transparent;background:#15151f;cursor:pointer;transition:.12s;
+}
+.layer-row:hover{border-color:var(--border)}
+.layer-row.active{border-color:var(--accent);background:rgba(108,99,255,.13)}
+.layer-thumb{
+  width:30px;height:30px;flex:none;border-radius:5px;background:#0f0f16;
+  overflow:hidden;display:grid;place-items:center;
+  background-image:linear-gradient(45deg,#22222e 25%,transparent 25%),linear-gradient(-45deg,#22222e 25%,transparent 25%),linear-gradient(45deg,transparent 75%,#22222e 75%),linear-gradient(-45deg,transparent 75%,#22222e 75%);
+  background-size:10px 10px;background-position:0 0,0 5px,5px -5px,-5px 0;
+}
+.layer-thumb img{max-width:100%;max-height:100%;object-fit:contain}
+.layer-name{
+  flex:1;min-width:0;background:transparent;border:none;color:var(--text);
+  font-size:11.5px;padding:3px 4px;border-radius:4px;
+}
+.layer-name:focus{outline:none;background:#0f0f16;box-shadow:0 0 0 2px var(--accent-glow)}
+.layer-actions{display:flex;gap:1px;flex:none}
+.layer-actions button{
+  width:18px;height:20px;padding:0;border:none;border-radius:4px;background:transparent;
+  color:var(--text-dim);cursor:pointer;font-size:11px;line-height:20px;
+}
+.layer-actions button:hover{background:var(--panel-3);color:var(--text)}
+.layer-actions button.danger:hover{color:var(--danger)}
+
+/* ---------- BIBLIOTECA DE FONDOS ---------- */
+.bg-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:7px}
+.bg-tile{
+  position:relative;aspect-ratio:16/9;border-radius:7px;overflow:hidden;
+  border:1px solid var(--border);cursor:pointer;background:#0f0f16;transition:.15s;
+}
+.bg-tile img{width:100%;height:100%;object-fit:cover;display:block}
+.bg-tile:hover{border-color:var(--accent)}
+.bg-tile.active{border-color:var(--accent);box-shadow:0 0 0 2px var(--accent-glow)}
+.bg-tile .del{
+  position:absolute;top:2px;right:2px;width:16px;height:16px;border-radius:50%;
+  background:rgba(255,92,122,.92);color:#fff;border:none;font-size:10px;
+  line-height:16px;text-align:center;cursor:pointer;opacity:0;transition:.15s;padding:0;
+}
+.bg-tile:hover .del{opacity:1}
+
+/* ---------- SECUENCIAS ---------- */
+.seq-list{display:flex;flex-direction:column;gap:5px;max-height:212px;overflow-y:auto}
+.seq-row{
+  display:flex;align-items:center;gap:8px;padding:7px 9px;border-radius:7px;
+  border:1px solid var(--border);background:#15151f;cursor:pointer;transition:.15s;
+}
+.seq-row:hover{border-color:#4d4d70}
+.seq-row.active{border-color:var(--accent);background:rgba(108,99,255,.13)}
+.seq-info{flex:1;min-width:0}
+.seq-info b{display:block;font-size:12px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.seq-info small{font-size:10px;color:var(--text-dim)}
+.seq-row .del{
+  width:18px;height:18px;border-radius:50%;border:none;background:transparent;color:var(--text-dim);
+  cursor:pointer;font-size:13px;line-height:18px;padding:0;flex:none;
+}
+.seq-row .del:hover{color:var(--danger);background:rgba(255,92,122,.12)}
+
+/* ---------- ESCENARIO / CANVAS ---------- */
+section.stage{
+  grid-area:stage;
+  position:relative;
+  display:flex;align-items:center;justify-content:center;
+  padding:22px;
+  overflow:hidden;
+  background:
+    radial-gradient(circle at 50% 30%,rgba(108,99,255,.08),transparent 60%),
+    repeating-conic-gradient(#1a1a26 0% 25%,#1d1d2c 0% 50%) 50%/22px 22px;
+}
+.canvas-wrap{
+  position:relative;
+  max-width:100%;max-height:100%;
+  box-shadow:var(--shadow),0 0 0 1px var(--border);
+  border-radius:var(--radius);
+  overflow:hidden;
+  background:#fff;
+  line-height:0;
+}
+canvas#canvas{
+  display:block;
+  width:auto;height:auto;
+  max-width:100%;max-height:calc(100vh - var(--header-h) - var(--footer-h) - 44px);
+  aspect-ratio:16/9;
+  touch-action:none;
+  cursor:default;
+}
+.canvas-badge{
+  position:absolute;top:12px;left:50%;transform:translateX(-50%);
+  display:flex;align-items:center;gap:12px;
+  background:rgba(22,22,31,.85);backdrop-filter:blur(6px);
+  border:1px solid var(--border);border-radius:20px;padding:6px 14px;
+  font-size:11px;color:var(--text-dim);pointer-events:none;line-height:1.4;
+  box-shadow:0 4px 16px rgba(0,0,0,.4);
+}
+.canvas-badge b{color:var(--text)}
+.canvas-badge .rec{color:var(--danger);animation:blink 1s infinite}
+@keyframes blink{50%{opacity:.25}}
+.stage-empty{
+  position:absolute;inset:0;display:grid;place-items:center;pointer-events:none;
+}
+.stage-empty .card{
+  text-align:center;color:var(--text-dim);font-size:13px;line-height:1.9;
+  background:rgba(30,30,47,.75);padding:22px 30px;border-radius:var(--radius);
+  border:1px dashed var(--border);backdrop-filter:blur(4px);
+}
+.stage-empty .card span{font-size:30px;display:block;margin-bottom:8px}
+
+/* ---------- LÍNEA DE TIEMPO ---------- */
+footer.timeline{
+  grid-area:footer;
+  background:var(--panel);
+  border-top:1px solid var(--border);
+  display:flex;flex-direction:column;
+  min-height:0;
+}
+.tl-controls{
+  display:flex;align-items:center;gap:10px;
+  padding:9px 14px;border-bottom:1px solid var(--border);
+  flex-wrap:wrap;background:#232338;
+}
+.tl-controls .group{display:flex;align-items:center;gap:6px}
+.tl-controls .sep{width:1px;height:24px;background:var(--border);margin:0 4px}
+.tl-controls .mini-label{font-size:11px;color:var(--text-dim);font-weight:600;letter-spacing:.3px}
+.play-btn{
+  width:36px;height:36px;border-radius:50%;display:grid;place-items:center;font-size:14px;
+  background:linear-gradient(135deg,var(--accent),#7d5cff);border:none;cursor:pointer;color:#fff;
+  box-shadow:0 4px 12px var(--accent-glow);transition:.16s;
+}
+.play-btn:hover{filter:brightness(1.12);transform:scale(1.05)}
+.play-btn.playing{background:linear-gradient(135deg,#ff5c7a,#ff8a5c)}
+#fpsSelect{padding:6px 8px;border-radius:var(--radius-sm);background:#15151f;border:1px solid var(--border);cursor:pointer}
+.tl-strip-wrap{flex:1;overflow-x:auto;overflow-y:hidden;padding:12px 14px;min-height:0}
+.tl-strip{display:flex;gap:10px;align-items:flex-start;height:100%}
+.thumb{
+  position:relative;flex:none;width:132px;height:74px;border-radius:8px;overflow:hidden;
+  border:2px solid var(--border);cursor:pointer;background:#101018;transition:.15s;
+}
+.thumb:hover{border-color:#5c5c82;transform:translateY(-2px)}
+.thumb.active{border-color:var(--accent);box-shadow:0 0 0 3px var(--accent-glow)}
+.thumb canvas{width:100%;height:100%;display:block;object-fit:contain}
+.thumb .idx{
+  position:absolute;top:3px;left:3px;font-size:10px;font-weight:700;
+  background:rgba(0,0,0,.65);border-radius:5px;padding:1px 6px;
+}
+.thumb .cnt{
+  position:absolute;bottom:3px;right:3px;font-size:9px;
+  background:rgba(0,0,0,.65);border-radius:5px;padding:1px 6px;color:var(--text-dim);
+}
+.thumb-add{
+  flex:none;width:132px;height:74px;border-radius:8px;border:2px dashed var(--border);
+  display:grid;place-items:center;color:var(--text-dim);cursor:pointer;font-size:22px;
+  transition:.15s;background:rgba(0,0,0,.12);
+}
+.thumb-add:hover{border-color:var(--accent);color:var(--accent-2);background:rgba(108,99,255,.08)}
+
+/* ---------- TOAST / MODAL ---------- */
+#toast{
+  position:fixed;bottom:215px;left:50%;transform:translateX(-50%) translateY(20px);
+  background:var(--panel-3);border:1px solid var(--border);border-radius:24px;
+  padding:10px 20px;font-size:12.5px;font-weight:600;box-shadow:var(--shadow);
+  opacity:0;pointer-events:none;transition:.25s;z-index:100;
+}
+#toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+#toast.ok{border-color:var(--ok);color:var(--ok)}
+#toast.err{border-color:var(--danger);color:var(--danger)}
+#toast.warn{border-color:var(--warn);color:var(--warn)}
+
+.modal-back{
+  position:fixed;inset:0;background:rgba(8,8,14,.72);backdrop-filter:blur(4px);
+  display:none;place-items:center;z-index:200;
+}
+.modal-back.show{display:grid}
+.modal{
+  background:var(--panel);border:1px solid var(--border);border-radius:14px;
+  padding:24px;width:min(420px,90vw);box-shadow:var(--shadow);text-align:center;
+}
+.modal h2{font-size:16px;margin-bottom:8px}
+.modal p{color:var(--text-dim);font-size:12.5px;line-height:1.6;margin-bottom:18px}
+.modal .actions{display:flex;gap:10px;justify-content:center}
+.progress{height:8px;border-radius:6px;background:#15151f;overflow:hidden;margin-top:14px;border:1px solid var(--border)}
+.progress > i{display:block;height:100%;width:0;background:linear-gradient(90deg,var(--accent),#a06bff);transition:.2s}
+
+/* ---------- MODAL QUITAR FONDO ---------- */
+.modal.rembg{width:min(880px,95vw);text-align:left}
+.modal.rembg h2{margin-bottom:6px}
+.modal.rembg > p{margin-bottom:16px;text-align:left}
+.rembg-grid{display:grid;grid-template-columns:1.2fr .8fr;gap:16px;margin-bottom:18px}
+.rembg-stage{
+  position:relative;border:1px solid var(--border);border-radius:var(--radius);
+  display:grid;place-items:center;padding:10px;min-height:250px;overflow:hidden;
+  background-color:#1a1a26;
+  background-image:
+    linear-gradient(45deg,#2a2a40 25%,transparent 25%),
+    linear-gradient(-45deg,#2a2a40 25%,transparent 25%),
+    linear-gradient(45deg,transparent 75%,#2a2a40 75%),
+    linear-gradient(-45deg,transparent 75%,#2a2a40 75%);
+  background-size:18px 18px;
+  background-position:0 0,0 9px,9px -9px,-9px 0;
+}
+#rembgCanvasHolder{line-height:0}
+#rembgCanvasHolder canvas{max-width:100%;max-height:42vh;display:block;cursor:crosshair;border-radius:6px}
+.rembg-tip{
+  position:absolute;bottom:8px;left:50%;transform:translateX(-50%);font-size:10.5px;color:var(--text-dim);
+  background:rgba(0,0,0,.6);padding:3px 10px;border-radius:20px;pointer-events:none;white-space:nowrap;
+}
+.rembg-controls{display:flex;flex-direction:column;gap:14px}
+.swatch-row{display:flex;align-items:center;gap:8px}
+.swatch-row .swatch{
+  width:36px;height:36px;border-radius:9px;border:1px solid var(--border);flex:none;
+  box-shadow:inset 0 0 0 2px rgba(0,0,0,.25);
+}
+.swatch-row input[type=color]{flex:1;height:36px;width:auto}
+.swatch-row .btn{flex:none}
+input[type=range]{width:100%;accent-color:var(--accent);cursor:pointer}
+.preset-row{display:flex;gap:6px;margin-top:8px}
+.preset-row .preset{flex:1;justify-content:center;font-size:11px;padding:6px 4px}
+.preset-row .preset.active{background:var(--accent);border-color:var(--accent);color:#fff}
+.rembg-controls .hint{background:rgba(108,99,255,.1);border:1px solid var(--border);border-radius:8px;padding:8px 10px}
+.rembg .actions{flex-wrap:wrap}
+@media (max-width:720px){ .rembg-grid{grid-template-columns:1fr} }
+
+.sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0)}
+
+/* ---------- RESPONSIVE ---------- */
+@media (max-width:1080px){
+  :root{--sidebar-w:250px}
+  .brand small{display:none}
+}
+@media (max-width:860px){
+  #app{
+    grid-template-columns:1fr;
+    grid-template-rows:var(--header-h) auto 1fr var(--footer-h);
+    grid-template-areas:"header" "sidebar" "stage" "footer";
+  }
+  aside.sidebar{
+    flex-direction:row;overflow-x:auto;overflow-y:hidden;border-right:none;
+    border-bottom:1px solid var(--border);max-height:230px;
+    padding:10px 12px;
+  }
+  aside.sidebar .panel{min-width:250px;margin:0 12px 0 0;overflow-y:auto}
+  aside.sidebar .panel:last-child{margin-right:0}
+  canvas#canvas{max-height:44vh}
+}
+</style>
+</head>
+<body>
+
+<div id="app">
+  <!-- ================= HEADER ================= -->
+  <header>
+    <div class="brand">
+      <div class="logo">🦆</div>
+      <div>DuckAnimación<small>Estudio Stop-Motion 2D</small></div>
+    </div>
+    <div class="header-actions">
+      <button class="btn sm" id="btnSave"    title="Guardar proyecto en este navegador">💾 Guardar</button>
+      <button class="btn sm" id="btnLoad"    title="Cargar el proyecto guardado">📂 Cargar</button>
+      <button class="btn sm danger" id="btnReset" title="Reiniciar proyecto">🗑️ Reiniciar</button>
+      <button class="btn sm primary" id="btnExport" title="Exportar la animación a video">🎥 Exportar a Video</button>
+    </div>
+  </header>
+
+  <!-- ================= SIDEBAR ================= -->
+  <aside class="sidebar">
+
+    <!-- Recursos / imágenes -->
+    <div class="panel">
+      <h3>🖼️ Recursos<span class="chev">▾</span></h3>
+      <div class="body">
+        <label class="file-drop">
+          <strong>➕ Añadir imágenes</strong>
+          PNG · JPG · SVG · WEBP (multiselección)
+          <input type="file" id="fileImages" accept="image/*" multiple />
+        </label>
+        <div class="asset-grid" id="assetGrid"></div>
+        <p class="hint">Haz clic en una miniatura para insertarla en el cuadro actual. 🪄 quita el fondo.</p>
+      </div>
+    </div>
+
+    <!-- Capas del cuadro actual -->
+    <div class="panel">
+      <h3>🗂️ Capas del cuadro <span style="margin-left:auto;font-size:10px;color:var(--text-dim)" id="layerCount">0</span></h3>
+      <div class="body">
+        <div class="layer-list" id="layerList"></div>
+        <p class="hint">Arriba = más al frente. Clic para seleccionar · ✎ renombrar en línea.</p>
+      </div>
+    </div>
+
+    <!-- Propiedades del objeto -->
+    <div class="panel" id="panelProps" style="display:none">
+      <h3>🎯 Objeto seleccionado<span class="chev">▾</span></h3>
+      <div class="body">
+        <div class="field">
+          <label>Nombre</label>
+          <input type="text" id="propName" />
+        </div>
+        <div class="grid2">
+          <div class="field"><label>X</label><input type="number" id="propX" step="1" /></div>
+          <div class="field"><label>Y</label><input type="number" id="propY" step="1" /></div>
+        </div>
+        <div class="grid2">
+          <div class="field"><label>Ancho</label><input type="number" id="propW" step="1" min="8" /></div>
+          <div class="field"><label>Alto</label><input type="number" id="propH" step="1" min="8" /></div>
+        </div>
+        <div class="field">
+          <label>Rotación (<span id="propRotVal">0</span>°)</label>
+          <input type="range" id="propRot" min="0" max="360" step="1" value="0" />
+        </div>
+        <div class="grid2">
+          <div class="field"><label>Escala (<span id="propScaleVal">100</span>%)</label><input type="range" id="propScale" min="10" max="400" value="100" /></div>
+          <div class="field"><label>Opacidad (<span id="propOpacityVal">100</span>%)</label><input type="range" id="propOpacity" min="0" max="100" value="100" /></div>
+        </div>
+        <div class="grid2">
+          <button class="btn sm" id="btnFlipObj" title="Voltear horizontalmente (F)">⇋ Voltear H</button>
+          <button class="btn sm" id="btnFront">⬆ Traer frente</button>
+        </div>
+        <div class="grid2">
+          <button class="btn sm" id="btnBack">⬇ Enviar fondo</button>
+          <button class="btn sm" id="btnRemoveBgObj" title="Elimina el color de fondo de esta imagen">🪄 Quitar Fondo</button>
+        </div>
+        <div class="grid2">
+          <button class="btn sm" id="btnRestoreBgObj" title="Recupera el fondo original" disabled>↺ Restaurar</button>
+          <button class="btn sm" id="btnCopyObj">⧉ Duplicar</button>
+        </div>
+        <button class="btn sm danger" id="btnDelObj">🗑 Eliminar objeto</button>
+      </div>
+    </div>
+
+    <!-- Secuencias / Animaciones -->
+    <div class="panel">
+      <h3>🎞️ Secuencias / Animación</h3>
+      <div class="body">
+        <div class="field">
+          <label>Nombre (opcional)</label>
+          <input type="text" id="seqName" placeholder="Ej. Personaje corriendo" />
+        </div>
+        <label class="file-drop">
+          <strong>📚 Subir poses (múltiples)</strong>
+          Se ordenan por nombre de archivo
+          <input type="file" id="filePoses" accept="image/*" multiple />
+        </label>
+        <div class="field">
+          <label>Spritesheet (tira horizontal)</label>
+          <input type="file" id="fileSheet" accept="image/*" />
+        </div>
+        <div class="grid2">
+          <div class="field"><label>Columnas</label><input type="number" id="sheetCols" min="1" max="64" value="4" /></div>
+          <div class="field"><label>Cuadros por pose</label><input type="number" id="poseHold" min="1" max="12" value="1" /></div>
+        </div>
+        <div class="seq-list" id="sequenceList"></div>
+        <button class="btn sm primary" id="btnStampInsert">🎬 Insertar Secuencia</button>
+        <p class="hint">Con un objeto seleccionado, la secuencia reemplaza sus poses. Sin selección, crea un personaje nuevo centrado.</p>
+      </div>
+    </div>
+
+    <!-- Fondo por cuadro + biblioteca -->
+    <div class="panel">
+      <h3>🎨 Fondo de escena</h3>
+      <div class="body">
+        <p class="hint" id="bgState">Color de fondo</p>
+        <div class="field">
+          <label>Color base</label>
+          <input type="color" id="bgColor" value="#ffffff" />
+        </div>
+        <label class="switch">
+          <input type="checkbox" id="bgPropagate" checked />
+          <span class="track"></span>
+          <span class="label">Heredar a cuadros siguientes<span class="sub">Se detiene en cuadros con fondo propio</span></span>
+        </label>
+        <label class="file-drop">
+          <strong>🖼️ Añadir fondos (múltiples)</strong>
+          Se guardan en la biblioteca
+          <input type="file" id="fileBg" accept="image/*" multiple />
+        </label>
+        <div class="bg-grid" id="bgGrid"></div>
+        <button class="btn sm" id="btnClearBg">🎨 Usar solo color en este cuadro</button>
+      </div>
+    </div>
+
+    <!-- Audio -->
+    <div class="panel">
+      <h3>🎵 Pista de audio<span class="chev">▾</span></h3>
+      <div class="body">
+        <label class="file-drop">
+          <strong>🎧 Subir audio</strong>
+          MP3 · WAV · OGG · M4A
+          <input type="file" id="fileAudio" accept="audio/*" />
+        </label>
+        <div class="row">
+          <button class="btn sm" id="btnAudioPlay">▶ Reproducir</button>
+          <button class="btn sm" id="btnAudioDel">✖ Quitar</button>
+        </div>
+        <p class="hint" id="audioInfo">Sin audio cargado. Se reproducirá sincronizado al pulsar Play o Exportar.</p>
+      </div>
+    </div>
+
+    <!-- Capa de cebolla -->
+    <div class="panel">
+      <h3>🧅 Capa de cebolla<span class="chev">▾</span></h3>
+      <div class="body">
+        <label class="switch">
+          <input type="checkbox" id="onionOn" />
+          <span class="track"></span>
+          <span class="label">Activar Onion Skin<span class="sub">Ver el cuadro anterior translúcido</span></span>
+        </label>
+        <label class="switch">
+          <input type="checkbox" id="onionNext" />
+          <span class="track"></span>
+          <span class="label">Mostrar también el siguiente</span>
+        </label>
+        <div class="field">
+          <label>Opacidad (<span id="onionOpVal">35</span>%)</label>
+          <input type="range" id="onionOpacity" min="5" max="90" value="35" />
+        </div>
+      </div>
+    </div>
+
+    <!-- Ayuda -->
+    <div class="panel">
+      <h3>⌨️ Atajos<span class="chev">▾</span></h3>
+      <div class="body">
+        <p class="hint">
+          <b>Espacio</b> Play/Pausa · <b>N</b> Nuevo cuadro · <b>D</b> Duplicar<br>
+          <b>F</b> Voltear H · <b>Supr</b> Borrar objeto · <b>Flechas</b> mover 1px<br>
+          <b>Shift + Flechas</b> mover 10px · <b>Shift + arrastrar</b> rotar en pasos
+        </p>
+      </div>
+    </div>
+  </aside>
+
+  <!-- ================= STAGE ================= -->
+  <section class="stage">
+    <div class="canvas-wrap">
+      <canvas id="canvas" width="1280" height="720"></canvas>
+    </div>
+    <div class="canvas-badge">
+      <span>📐 <b>1280×720</b></span>
+      <span>🖼️ Cuadro <b id="badgeFrame">1</b></span>
+      <span id="badgeOnion" style="display:none">🧅 <b>Onion</b></span>
+      <span id="badgeRec" style="display:none" class="rec">● REC</span>
+    </div>
+    <div class="stage-empty" id="stageEmpty">
+      <div class="card">
+        <span>🦆</span>
+        Sube imágenes en el panel <b>Recursos</b> y haz clic<br>
+        en una miniatura para insertarla en este cuadro.<br>
+        Arrastra para mover · Usa los tiradores para redimensionar.
+      </div>
+    </div>
+  </section>
+
+  <!-- ================= TIMELINE ================= -->
+  <footer class="timeline">
+    <div class="tl-controls">
+      <div class="group">
+        <button class="btn sm" id="btnFirst" title="Ir al inicio">⏮</button>
+        <button class="btn sm" id="btnPrev"  title="Cuadro anterior">◀</button>
+        <button class="play-btn" id="btnPlay" title="Reproducir (Espacio)">▶</button>
+        <button class="btn sm" id="btnNext"  title="Cuadro siguiente">▶</button>
+        <button class="btn sm" id="btnLast"  title="Ir al final">⏭</button>
+      </div>
+      <div class="sep"></div>
+      <div class="group">
+        <button class="btn sm" id="btnNewFrame" title="Nuevo cuadro en blanco (N)">➕ Nuevo</button>
+        <button class="btn sm" id="btnDupFrame" title="Duplicar cuadro actual (D)">📋 Duplicar</button>
+        <button class="btn sm danger" id="btnDelFrame" title="Eliminar cuadro actual">🗑️ Eliminar</button>
+      </div>
+      <div class="sep"></div>
+      <div class="group">
+        <span class="mini-label">Velocidad</span>
+        <select id="fpsSelect" title="Cuadros por segundo">
+          <option value="6">6 FPS</option>
+          <option value="8">8 FPS</option>
+          <option value="12" selected>12 FPS</option>
+          <option value="15">15 FPS</option>
+          <option value="24">24 FPS</option>
+        </select>
+      </div>
+      <div class="sep"></div>
+      <label class="switch" title="Activar capa de cebolla">
+        <input type="checkbox" id="onionOn2" />
+        <span class="track"></span>
+        <span class="label">🧅 Onion Skin</span>
+      </label>
+      <div class="spacer"></div>
+      <span class="mini-label" id="tlInfo">1 cuadro</span>
+    </div>
+    <div class="tl-strip-wrap">
+      <div class="tl-strip" id="tlStrip"></div>
+    </div>
+  </footer>
+</div>
+
+<div id="toast"></div>
+
+<div class="modal-back" id="modalBack">
+  <div class="modal">
+    <h2 id="modalTitle">Confirmar</h2>
+    <p id="modalText">¿Seguro?</p>
+    <div class="actions">
+      <button class="btn" id="modalCancel">Cancelar</button>
+      <button class="btn primary" id="modalOk">Aceptar</button>
+    </div>
+    <div class="progress" id="modalProgress" style="display:none"><i></i></div>
+  </div>
+</div>
+
+<!-- ================= MODAL: QUITAR FONDO (CHROMA KEY) ================= -->
+<div class="modal-back" id="rembgBack">
+  <div class="modal rembg">
+    <h2>🪄 Quitar Fondo</h2>
+    <p>Haz clic sobre la imagen para tomar el color del fondo con el cuentagotas y ajusta la
+       <b>tolerancia</b> hasta que el recorte quede limpio. La vista previa se actualiza en tiempo real.</p>
+    <div class="rembg-grid">
+      <div class="rembg-stage">
+        <div id="rembgCanvasHolder"></div>
+        <span class="rembg-tip">🎯 Clic para muestrear el color del fondo</span>
+      </div>
+      <div class="rembg-controls">
+        <div class="field">
+          <label>Color del fondo a eliminar</label>
+          <div class="swatch-row">
+            <span class="swatch" id="rembgSwatch" title="Color seleccionado"></span>
+            <input type="color" id="rembgColor" value="#ffffff" title="Elegir color manualmente" />
+            <button class="btn sm" id="rembgCorner" title="Tomar el color de la esquina superior izquierda">📍 Esquina</button>
+          </div>
+        </div>
+        <div class="field">
+          <label>Tolerancia de Fondo: <span id="rembgTolVal">25</span>%</label>
+          <input type="range" id="rembgTolerance" min="0" max="100" value="25" />
+          <div class="preset-row">
+            <button class="btn sm preset" data-tol="10">🧷 Precisa 10%</button>
+            <button class="btn sm preset" data-tol="25">⚖️ Media 25%</button>
+            <button class="btn sm preset" data-tol="40">🧹 Agresiva 40%</button>
+          </div>
+        </div>
+        <div class="field">
+          <label>Suavizado de bordes: <span id="rembgSoftVal">15</span>%</label>
+          <input type="range" id="rembgSoftness" min="0" max="100" value="15" />
+        </div>
+        <p class="hint">💡 Para cromas verdes o azules usa tolerancia 25–40% y suavizado 10–20%.
+           Sube el suavizado si quedan bordes dentados.</p>
+      </div>
+    </div>
+    <div class="actions">
+      <button class="btn danger" id="rembgRestore">↺ Restaurar Fondo Original</button>
+      <button class="btn" id="rembgCancel">Cancelar</button>
+      <button class="btn primary" id="rembgApply">✔ Aplicar Cambios</button>
+    </div>
+  </div>
+</div>
+
+<script>
+/* =========================================================================
+   DUCKANIMACIÓN · Aplicación de animación cuadro por cuadro (stop-motion)
+   Todo el estado vive en `project`. Persistencia en IndexedDB (imágenes
+   pesadas en DataURL), con autoguardado y carga al iniciar.
+   ========================================================================= */
+(() => {
+"use strict";
+
+/* ------------------------------------------------------------------ */
+/* 1. CONSTANTES Y UTILIDADES                                          */
+/* ------------------------------------------------------------------ */
+const CW = 1280, CH = 720;                 // resolución interna del lienzo
+const MIN_SIZE = 8;                        // tamaño mínimo de un objeto
+const DB_NAME = "duckanimacion-db";
+const DB_STORE = "projects";
+const KEY = "current-project";
+const AUTOSAVE_MS = 900;
+
+const $  = (sel) => document.querySelector(sel);
+const $$ = (sel) => Array.from(document.querySelectorAll(sel));
+const uid = () => (crypto.randomUUID ? crypto.randomUUID()
+                    : "id-" + Date.now() + "-" + Math.random().toString(36).slice(2, 9));
+const clamp = (v, a, b) => Math.min(b, Math.max(a, v));
+const round = (v, d = 2) => Math.round(v * 10 ** d) / 10 ** d;
+const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+
+/* Canvas de trabajo para generar miniaturas */
+const thumbCanvas = document.createElement("canvas");
+thumbCanvas.width = 132; thumbCanvas.height = 74;
+const thumbCtx = thumbCanvas.getContext("2d");
+
+/* ------------------------------------------------------------------ */
+/* 2. ESTADO GLOBAL                                                    */
+/* ------------------------------------------------------------------ */
+/**
+ * Estructura del proyecto:
+ * { assets:[], backgrounds:[], sequences:[], frames:[{objects:[], bg:{...}}], fps, audio }
+ * Cada frame tiene su propio fondo (con herencia hacia los siguientes cuadros).
+ */
+let project = null;
+let currentFrame = 0;      // índice del cuadro activo
+let selectedId  = null;    // id del objeto seleccionado en el cuadro actual
+let activeSequenceId = null; // secuencia elegida en el asistente
+let isPlaying   = false;
+let playTimer   = null;
+let isExporting = false;
+let dirtyThumbs = true;
+
+const DEFAULT_BG = { type: "color", color: "#ffffff", imageId: null, override: true };
+
+/* Caché de imágenes: src(DataURL) -> HTMLImageElement ya cargado */
+const imageCache = new Map();
+/* Audio del proyecto */
+let audioEl = new Audio();
+audioEl.preload = "auto";
+audioEl.loop = false;
+/* Nodo WebAudio (se crea una sola vez, necesario para capturar el audio en la exportación) */
+let webAudioCtx = null, mediaElementSource = null, mediaStreamDest = null;
+
+/* ------------------------------------------------------------------ */
+/* 3. PERSISTENCIA (IndexedDB con respaldo en localStorage)            */
+/* ------------------------------------------------------------------ */
+function openDB() {
+  return new Promise((resolve, reject) => {
+    const req = indexedDB.open(DB_NAME, 1);
+    req.onupgradeneeded = () => {
+      if (!req.result.objectStoreNames.contains(DB_STORE)) req.result.createObjectStore(DB_STORE);
+    };
+    req.onsuccess = () => resolve(req.result);
+    req.onerror   = () => reject(req.error);
+  });
+}
+function withTimeout(promise, ms) {
+  return Promise.race([
+    promise,
+    new Promise((resolve) => setTimeout(() => resolve(null), ms))
+  ]);
+}
+async function idbSet(key, value) {
+  const db = await openDB();
+  return new Promise((resolve, reject) => {
+    const tx = db.transaction(DB_STORE, "readwrite");
+    tx.objectStore(DB_STORE).put(value, key);
+    tx.oncomplete = () => resolve();
+    tx.onerror = () => reject(tx.error);
+  });
+}
+async function idbGet(key) {
+  const db = await openDB();
+  return new Promise((resolve, reject) => {
+    const tx = db.transaction(DB_STORE, "readonly");
+    const rq = tx.objectStore(DB_STORE).get(key);
+    rq.onsuccess = () => resolve(rq.result);
+    rq.onerror = () => reject(rq.error);
+  });
+}
+
+let autosaveTimer = null;
+function scheduleAutosave() {
+  clearTimeout(autosaveTimer);
+  autosaveTimer = setTimeout(() => saveProject(true), AUTOSAVE_MS);
+}
+
+/** Guarda el proyecto. `silent` evita mostrar el toast en autoguardados. */
+async function saveProject(silent = false) {
+  const payload = JSON.parse(JSON.stringify(project));
+  let saved = false;
+  try {
+    saved = !!(await withTimeout(idbSet(KEY, payload).then(() => true), 3000));
+  } catch (_) { saved = false; }
+  if (!saved) {
+    // Respaldo: localStorage (limitado, pero evita perder el trabajo pequeño)
+    try {
+      localStorage.setItem(KEY, JSON.stringify(payload));
+      toast("Guardado en almacenamiento de respaldo", "warn");
+    } catch (_) {
+      toast("No se pudo guardar el proyecto", "err");
+    }
+    return;
+  }
+  if (!silent) toast("Proyecto guardado correctamente", "ok");
+  else toast("Autoguardado ✓", "ok", 900);
+}
+
+async function loadProject(fromUser = false) {
+  let data = null;
+  try { data = await withTimeout(idbGet(KEY), 2000);
+    if (!data) { const raw = localStorage.getItem(KEY); if (raw) data = JSON.parse(raw); }
+  } catch (_) { /* ignorar */ }
+
+  if (!data) { if (fromUser) toast("No hay ningún proyecto guardado", "warn"); return false; }
+
+  project = migrateProject(data);
+  currentFrame = 0; selectedId = null; activeSequenceId = null;
+
+  // Precarga todas las imágenes referenciadas (objetos, recursos, fondos y secuencias)
+  const srcs = new Set();
+  project.frames.forEach((f) => f.objects.forEach((o) => srcs.add(o.src)));
+  project.assets.forEach((a) => srcs.add(a.src));
+  project.backgrounds.forEach((b) => srcs.add(b.src));
+  project.sequences.forEach((s) => s.poses.forEach((src) => srcs.add(src)));
+  await Promise.all([...srcs].map(loadImage));
+
+  // Reconstruye el audio
+  resetWebAudioGraph();
+  $("#audioInfo").textContent = project.audio && project.audio.src
+    ? "🎵 " + project.audio.name
+    : "Sin audio cargado. Se reproducirá sincronizado al pulsar Play o Exportar.";
+
+  $("#fpsSelect").value = project.fps;
+  refreshAll();
+  if (fromUser) toast("Proyecto cargado", "ok");
+  return true;
+}
+
+/** Asegura que un proyecto cargado tenga todos los campos esperados. */
+function migrateProject(p) {
+  p.assets      = Array.isArray(p.assets) ? p.assets : [];
+  p.backgrounds = Array.isArray(p.backgrounds) ? p.backgrounds : [];
+  p.sequences   = Array.isArray(p.sequences) ? p.sequences : [];
+  p.frames      = Array.isArray(p.frames) && p.frames.length ? p.frames : [newFrame()];
+  p.fps         = p.fps || 12;
+  p.audio       = p.audio || { name: "", src: "" };
+
+  // --- Migración del antiguo fondo global (project.bg) a la biblioteca ---
+  let legacyColor = "#ffffff";
+  let legacyImageId = null;
+  if (p.bg) {
+    legacyColor = p.bg.color || legacyColor;
+    if (p.bg.src) {
+      const existing = p.backgrounds.find((b) => b.src === p.bg.src);
+      if (existing) legacyImageId = existing.id;
+      else {
+        const entry = { id: uid(), name: "Fondo importado", src: p.bg.src };
+        p.backgrounds.push(entry);
+        legacyImageId = entry.id;
+      }
+    }
+  }
+  delete p.bg;
+
+  // --- Frames: fondo propio o heredado del anterior ---
+  let prev = { type: legacyImageId ? "image" : "color", color: legacyColor, imageId: legacyImageId, override: true };
+  p.frames.forEach((f, idx) => {
+    f.objects = Array.isArray(f.objects) ? f.objects : [];
+    f.objects.forEach((o) => {
+      o.id = o.id || uid();
+      o.name = o.name || "objeto";
+      o.rotation = typeof o.rotation === "number" ? o.rotation : 0;
+      o.zIndex = typeof o.zIndex === "number" ? o.zIndex : 0;
+      o.opacity = typeof o.opacity === "number" ? o.opacity : 1;
+      o.flipX = !!o.flipX;
+      o.baseW = o.baseW || o.width;
+      o.baseH = o.baseH || o.height;
+    });
+    if (!f.bg) {
+      f.bg = { ...prev, override: idx === 0 };
+    } else {
+      f.bg = {
+        type: f.bg.type === "image" ? "image" : "color",
+        color: f.bg.color || legacyColor,
+        imageId: f.bg.imageId || null,
+        override: f.bg.override !== false
+      };
+      if (f.bg.type === "image" && !f.bg.imageId) f.bg.type = "color";
+    }
+    prev = f.bg;
+  });
+
+  ensureBuiltinSequences(p);
+  return p;
+}
+
+/* ------------------------------------------------------------------ */
+/* 4. MODELO DE DATOS                                                  */
+/* ------------------------------------------------------------------ */
+function newFrame(objects = [], bg = null) {
+  return { objects, bg: bg ? { ...bg, override: false } : { ...DEFAULT_BG } };
+}
+
+function createDefaultProject() {
+  const p = { assets: [], backgrounds: [], sequences: [], frames: [], fps: 12, audio: { name: "", src: "" } };
+  ensureBuiltinSequences(p);
+  p.frames = [{ objects: [], bg: { ...DEFAULT_BG, override: true } }];
+  return p;
+}
+
+function frame() { return project.frames[currentFrame]; }
+
+function selectedObject() {
+  return frame().objects.find((o) => o.id === selectedId) || null;
+}
+
+function nextZIndex() {
+  return frame().objects.reduce((m, o) => Math.max(m, o.zIndex), 0) + 1;
+}
+
+/** Carga (y cachea) una imagen a partir de su DataURL/URL. */
+function loadImage(src) {
+  return new Promise((resolve) => {
+    if (imageCache.has(src) && imageCache.get(src).complete) return resolve(imageCache.get(src));
+    const img = imageCache.get(src) || new Image();
+    img.onload = () => { imageCache.set(src, img); requestRender(); scheduleThumbs(); resolve(img); };
+    img.onerror = () => resolve(null);
+    if (!imageCache.has(src) || !img.src) { img.src = src; }
+    imageCache.set(src, img);
+    if (img.complete && img.naturalWidth) resolve(img);
+  });
+}
+
+/** Convierte un File a DataURL. */
+function fileToDataURL(file) {
+  return new Promise((resolve, reject) => {
+    const fr = new FileReader();
+    fr.onload = () => resolve(fr.result);
+    fr.onerror = () => reject(fr.error);
+    fr.readAsDataURL(file);
+  });
+}
+
+/* ------------------------------------------------------------------ */
+/* 5. REFERENCIAS DOM Y RENDERIZADO DEL CANVAS                         */
+/* ------------------------------------------------------------------ */
+const canvas = $("#canvas");
+const ctx = canvas.getContext("2d");
+
+let renderQueued = false;
+function requestRender() {
+  if (renderQueued) return;
+  renderQueued = true;
+  requestAnimationFrame(() => { renderQueued = false; render(); });
+}
+
+/** Dibuja el fondo del cuadro indicado (color + imagen de la biblioteca). */
+function drawBackground(c, fr) {
+  const bg = (fr && fr.bg) || DEFAULT_BG;
+  c.save();
+  c.fillStyle = bg.color || "#ffffff";
+  c.fillRect(0, 0, CW, CH);
+  if (bg.type === "image" && bg.imageId) {
+    const entry = project.backgrounds.find((b) => b.id === bg.imageId);
+    const img = entry && imageCache.get(entry.src);
+    if (img && img.complete && img.naturalWidth) {
+      // Ajuste "cover" manteniendo proporción
+      const scale = Math.max(CW / img.naturalWidth, CH / img.naturalHeight);
+      const w = img.naturalWidth * scale, h = img.naturalHeight * scale;
+      c.drawImage(img, (CW - w) / 2, (CH - h) / 2, w, h);
+    }
+  }
+  c.restore();
+}
+
+/** Dibuja un objeto respetando rotación, volteo, opacidad y zIndex. */
+function drawObject(c, o) {
+  const img = imageCache.get(o.src);
+  if (!img || !img.complete || !img.naturalWidth) return;
+  const cx = o.x + o.width / 2, cy = o.y + o.height / 2;
+  c.save();
+  c.globalAlpha *= (typeof o.opacity === "number" ? o.opacity : 1);
+  c.translate(cx, cy);
+  c.rotate((o.rotation * Math.PI) / 180);
+  if (o.flipX) c.scale(-1, 1);
+  c.drawImage(img, -o.width / 2, -o.height / 2, o.width, o.height);
+  c.restore();
+}
+
+/** Renderiza el contenido de un cuadro (fondo + objetos) SIN overlays. */
+function drawFrameContent(c, fr, withBg = true) {
+  if (withBg) drawBackground(c, fr);
+  [...fr.objects].sort((a, b) => a.zIndex - b.zIndex).forEach((o) => drawObject(c, o));
+}
+
+/** Render principal del editor (incluye capa de cebolla y selección). */
+function render() {
+  ctx.clearRect(0, 0, CW, CH);
+  drawBackground(ctx, frame());
+
+  // --- Capa de cebolla ---
+  if ($("#onionOn").checked) {
+    const op = parseInt($("#onionOpacity").value, 10) / 100;
+    ctx.save();
+    // Cuadro anterior
+    if (currentFrame > 0) {
+      ctx.globalAlpha = op;
+      drawFrameContent(ctx, project.frames[currentFrame - 1], false);
+    }
+    // Cuadro siguiente (opcional, más tenue)
+    if ($("#onionNext").checked && currentFrame < project.frames.length - 1) {
+      ctx.globalAlpha = op * 0.6;
+      drawFrameContent(ctx, project.frames[currentFrame + 1], false);
+    }
+    ctx.restore();
+  }
+
+  // --- Contenido del cuadro actual ---
+  [...frame().objects].sort((a, b) => a.zIndex - b.zIndex).forEach((o) => drawObject(ctx, o));
+
+  // --- Overlay de selección ---
+  const sel = selectedObject();
+  if (sel) drawSelectionOverlay(ctx, sel);
+
+  // --- Estado vacío ---
+  $("#stageEmpty").style.display = frame().objects.length === 0 ? "grid" : "none";
+  $("#badgeFrame").textContent = currentFrame + 1;
+  $("#badgeOnion").style.display = $("#onionOn").checked ? "" : "none";
+  $("#tlInfo").textContent = project.frames.length + (project.frames.length === 1 ? " cuadro" : " cuadros");
+}
+
+/** Geometría de los tiradores de selección. */
+function getHandles(o) {
+  const cx = o.x + o.width / 2, cy = o.y + o.height / 2;
+  const hw = o.width / 2, hh = o.height / 2;
+  const r = (o.rotation * Math.PI) / 180;
+  const cos = Math.cos(r), sin = Math.sin(r);
+  const W = (lx, ly) => ({ x: cx + lx * cos - ly * sin, y: cy + lx * sin + ly * cos });
+  const rotOffset = 34; // distancia del tirador de rotación (en px de lienzo)
+  return {
+    nw: W(-hw, -hh), n: W(0, -hh), ne: W(hw, -hh),
+    e:  W(hw, 0),    se: W(hw, hh), s: W(0, hh),
+    sw: W(-hw, hh),  w:  W(-hw, 0),
+    rot: W(0, -hh - rotOffset)
+  };
+}
+const HANDLE_SIGN = { nw: [-1,-1], n: [0,-1], ne: [1,-1], e: [1,0], se: [1,1], s: [0,1], sw: [-1,1], w: [-1,0] };
+
+function drawSelectionOverlay(c, o) {
+  const h = getHandles(o);
+  // Marco punteado
+  c.save();
+  c.strokeStyle = "#6c63ff";
+  c.lineWidth = 1.5;
+  c.setLineDash([7, 5]);
+  c.beginPath();
+  c.moveTo(h.nw.x, h.nw.y); c.lineTo(h.ne.x, h.ne.y);
+  c.lineTo(h.se.x, h.se.y); c.lineTo(h.sw.x, h.sw.y);
+  c.closePath(); c.stroke();
+  c.setLineDash([]);
+
+  // Línea del tirador de rotación
+  const top = { x: (h.nw.x + h.ne.x) / 2, y: (h.nw.y + h.ne.y) / 2 };
+  c.beginPath(); c.moveTo(top.x, top.y); c.lineTo(h.rot.x, h.rot.y); c.stroke();
+
+  // Tiradores
+  const R = 6;
+  Object.entries(HANDLE_SIGN).forEach(([key]) => {
+    const p = h[key];
+    c.fillStyle = "#ffffff";
+    c.strokeStyle = "#6c63ff";
+    c.lineWidth = 2;
+    c.beginPath(); c.rect(p.x - R, p.y - R, R * 2, R * 2); c.fill(); c.stroke();
+  });
+
+  // Tirador de rotación (círculo)
+  c.fillStyle = "#6c63ff";
+  c.strokeStyle = "#ffffff";
+  c.beginPath(); c.arc(h.rot.x, h.rot.y, 7, 0, Math.PI * 2); c.fill(); c.stroke();
+  c.restore();
+}
+
+/* ------------------------------------------------------------------ */
+/* 6. COORDENADAS Y HIT-TEST                                           */
+/* ------------------------------------------------------------------ */
+/** Convierte coordenadas de pantalla a coordenadas del lienzo interno. */
+function pointerToCanvas(evt) {
+  const r = canvas.getBoundingClientRect();
+  return {
+    x: (evt.clientX - r.left) * (CW / r.width),
+    y: (evt.clientY - r.top)  * (CH / r.height)
+  };
+}
+
+/** Devuelve el objeto bajo el punto (el de mayor zIndex). */
+function hitTestObject(p) {
+  const list = [...frame().objects].sort((a, b) => b.zIndex - a.zIndex);
+  for (const o of list) {
+    const cx = o.x + o.width / 2, cy = o.y + o.height / 2;
+    const r = (-o.rotation * Math.PI) / 180;
+    const dx = p.x - cx, dy = p.y - cy;
+    const lx = dx * Math.cos(r) - dy * Math.sin(r);
+    const ly = dx * Math.sin(r) + dy * Math.cos(r);
+    if (Math.abs(lx) <= o.width / 2 && Math.abs(ly) <= o.height / 2) return o;
+  }
+  return null;
+}
+
+/** Devuelve el tirador bajo el punto, o null. */
+function hitTestHandle(p) {
+  const sel = selectedObject();
+  if (!sel) return null;
+  const h = getHandles(sel);
+  const tol = 11;
+  if (Math.hypot(p.x - h.rot.x, p.y - h.rot.y) <= tol + 3) return "rot";
+  for (const key of Object.keys(HANDLE_SIGN)) {
+    if (Math.hypot(p.x - h[key].x, p.y - h[key].y) <= tol) return key;
+  }
+  return null;
+}
+
+/* ------------------------------------------------------------------ */
+/* 7. INTERACCIÓN: ARRASTRAR, REDIMENSIONAR, ROTAR                     */
+/* ------------------------------------------------------------------ */
+let action = null; // {type, ...}
+
+canvas.addEventListener("pointerdown", (e) => {
+  if (isPlaying || isExporting) return;
+  const p = pointerToCanvas(e);
+  canvas.setPointerCapture(e.pointerId);
+
+  // 1) ¿Tirador?
+  const handle = hitTestHandle(p);
+  if (handle) {
+    const sel = selectedObject();
+    if (handle === "rot") {
+      action = { type: "rotate", start: p,
+        center: { x: sel.x + sel.width / 2, y: sel.y + sel.height / 2 },
+        startRot: sel.rotation };
+    } else {
+      const [hx, hy] = HANDLE_SIGN[handle];
+      const r = (sel.rotation * Math.PI) / 180;
+      const cos = Math.cos(r), sin = Math.sin(r);
+      // Punto de anclaje = esquina/borde opuesto (fijo durante el resize)
+      const alx = -hx * sel.width / 2, aly = -hy * sel.height / 2;
+      const anchor = {
+        x: sel.x + sel.width / 2 + alx * cos - aly * sin,
+        y: sel.y + sel.height / 2 + alx * sin + aly * cos
+      };
+      action = { type: "resize", handle, hx, hy, start: p, anchor, rot: r,
+        startObj: { x: sel.x, y: sel.y, width: sel.width, height: sel.height, rotation: sel.rotation } };
+    }
+    return;
+  }
+
+  // 2) ¿Objeto?
+  const obj = hitTestObject(p);
+  if (obj) {
+    selectedId = obj.id;
+    action = { type: "move", start: p, startObj: { x: obj.x, y: obj.y } };
+    syncPropsPanel();
+    render();
+  } else {
+    // clic en vacío -> deseleccionar
+    selectedId = null;
+    syncPropsPanel();
+    render();
+  }
+});
+
+canvas.addEventListener("pointermove", (e) => {
+  const p = pointerToCanvas(e);
+
+  if (!action) { updateCursor(p); return; }
+
+  if (action.type === "move") {
+    const o = selectedObject(); if (!o) return;
+    let nx = action.startObj.x + (p.x - action.start.x);
+    let ny = action.startObj.y + (p.y - action.start.y);
+    if (e.shiftKey) { nx = Math.round(nx / 10) * 10; ny = Math.round(ny / 10) * 10; }
+    o.x = round(nx); o.y = round(ny);
+    syncPropsPanel(); requestRender(); scheduleAutosave(); dirtyThumbs = true; scheduleThumbs();
+    return;
+  }
+
+  if (action.type === "resize") {
+    const o = selectedObject(); if (!o) return;
+    const { hx, hy, anchor, rot } = action;
+    const dx = p.x - anchor.x, dy = p.y - anchor.y;
+    // Rotar el delta al espacio local del objeto (inverso de la rotación)
+    const lx =  dx * Math.cos(-rot) - dy * Math.sin(-rot);
+    const ly =  dx * Math.sin(-rot) + dy * Math.cos(-rot);
+    let nw = hx !== 0 ? Math.max(MIN_SIZE, hx * lx) : o.width;
+    let nh = hy !== 0 ? Math.max(MIN_SIZE, hy * ly) : o.height;
+    if (e.shiftKey && hx !== 0 && hy !== 0) { // proporción bloqueada
+      const base = action.startObj;
+      const ratio = base.width / base.height;
+      if (nw / nh > ratio) nw = nh * ratio; else nh = nw / ratio;
+    }
+    // Nuevo centro respecto al anclaje
+    const cxL = hx * nw / 2, cyL = hy * nh / 2;
+    const cx = anchor.x + cxL * Math.cos(rot) - cyL * Math.sin(rot);
+    const cy = anchor.y + cxL * Math.sin(rot) + cyL * Math.cos(rot);
+    o.width = round(nw); o.height = round(nh);
+    o.x = round(cx - nw / 2); o.y = round(cy - nh / 2);
+    syncPropsPanel(); requestRender(); scheduleAutosave(); dirtyThumbs = true; scheduleThumbs();
+    return;
+  }
+
+  if (action.type === "rotate") {
+    const o = selectedObject(); if (!o) return;
+    let deg = (Math.atan2(p.y - action.center.y, p.x - action.center.x) * 180) / Math.PI + 90;
+    if (e.shiftKey) deg = Math.round(deg / 15) * 15;
+    deg = ((deg % 360) + 360) % 360; // normaliza a [0,360)
+    o.rotation = Math.round(deg);
+    syncPropsPanel(); requestRender(); scheduleAutosave(); dirtyThumbs = true; scheduleThumbs();
+  }
+});
+
+function endAction(e) {
+  if (action) {
+    action = null;
+    canvas.style.cursor = "default";
+    syncPropsPanel();
+    dirtyThumbs = true;
+    scheduleThumbs();
+    scheduleAutosave();
+  }
+  try { canvas.releasePointerCapture(e.pointerId); } catch (_) {}
+}
+canvas.addEventListener("pointerup", endAction);
+canvas.addEventListener("pointercancel", endAction);
+
+function updateCursor(p) {
+  if (hitTestHandle(p)) { canvas.style.cursor = "pointer"; return; }
+  canvas.style.cursor = hitTestObject(p) ? "move" : "default";
+}
+
+/* ------------------------------------------------------------------ */
+/* 8. PANEL DE PROPIEDADES                                             */
+/* ------------------------------------------------------------------ */
+function syncPropsPanel() {
+  const o = selectedObject();
+  $("#panelProps").style.display = o ? "" : "none";
+  highlightLayer();
+  if (!o) return;
+  $("#propName").value = o.name || "";
+  $("#propX").value = Math.round(o.x);
+  $("#propY").value = Math.round(o.y);
+  $("#propW").value = Math.round(o.width);
+  $("#propH").value = Math.round(o.height);
+
+  const rot = Math.round((((o.rotation || 0) % 360) + 360) % 360);
+  $("#propRot").value = rot;
+  $("#propRotVal").textContent = rot;
+
+  const bw = o.baseW || o.width || 1;
+  const scalePct = clamp(Math.round((o.width / bw) * 100), 10, 400);
+  $("#propScale").value = scalePct;
+  $("#propScaleVal").textContent = scalePct;
+
+  const op = Math.round((typeof o.opacity === "number" ? o.opacity : 1) * 100);
+  $("#propOpacity").value = op;
+  $("#propOpacityVal").textContent = op;
+
+  // El botón de restaurar solo se activa si el objeto tiene un fondo recortado
+  $("#btnRestoreBgObj").disabled = !o.originalSrc;
+}
+
+/** Resalta en la lista de capas el objeto seleccionado. */
+function highlightLayer() {
+  $$("#layerList .layer-row").forEach((r) =>
+    r.classList.toggle("active", r.dataset.id === selectedId));
+}
+
+function bindPropInput(id, apply) {
+  $(id).addEventListener("input", () => {
+    const o = selectedObject(); if (!o) return;
+    apply(o, $(id).value);
+    requestRender(); scheduleThumbs(); scheduleAutosave();
+  });
+}
+bindPropInput("#propName", (o, v) => {
+  o.name = v;
+  const inp = document.querySelector(`.layer-row[data-id="${o.id}"] .layer-name`);
+  if (inp) inp.value = v;
+});
+bindPropInput("#propX",   (o, v) => { o.x = round(parseFloat(v) || 0); });
+bindPropInput("#propY",   (o, v) => { o.y = round(parseFloat(v) || 0); });
+bindPropInput("#propW",   (o, v) => { o.width  = Math.max(MIN_SIZE, parseFloat(v) || MIN_SIZE); dirtyThumbs = true; });
+bindPropInput("#propH",   (o, v) => { o.height = Math.max(MIN_SIZE, parseFloat(v) || MIN_SIZE); dirtyThumbs = true; });
+
+$("#propRot").addEventListener("input", () => {
+  const o = selectedObject(); if (!o) return;
+  o.rotation = parseFloat($("#propRot").value) || 0;
+  $("#propRotVal").textContent = o.rotation;
+  requestRender(); scheduleThumbs(); scheduleAutosave();
+});
+
+$("#propScale").addEventListener("input", () => {
+  const o = selectedObject(); if (!o) return;
+  const pct = clamp(parseFloat($("#propScale").value) || 100, 10, 400);
+  const bw = o.baseW || o.width, bh = o.baseH || o.height;
+  const cx = o.x + o.width / 2, cy = o.y + o.height / 2;
+  o.width  = Math.max(MIN_SIZE, round(bw * pct / 100));
+  o.height = Math.max(MIN_SIZE, round(bh * pct / 100));
+  o.x = round(cx - o.width / 2); o.y = round(cy - o.height / 2);
+  $("#propScaleVal").textContent = Math.round(pct);
+  $("#propW").value = Math.round(o.width); $("#propH").value = Math.round(o.height);
+  $("#propX").value = Math.round(o.x);     $("#propY").value = Math.round(o.y);
+  requestRender(); scheduleThumbs(); scheduleAutosave();
+});
+
+$("#propOpacity").addEventListener("input", () => {
+  const o = selectedObject(); if (!o) return;
+  const v = clamp(parseInt($("#propOpacity").value, 10) || 0, 0, 100);
+  o.opacity = v / 100;
+  $("#propOpacityVal").textContent = v;
+  requestRender(); scheduleThumbs(); scheduleAutosave();
+});
+
+function toggleFlip(o) {
+  if (!o) return;
+  o.flipX = !o.flipX;
+  requestRender(); scheduleThumbs(); scheduleAutosave();
+}
+$("#btnFlipObj").addEventListener("click", () => toggleFlip(selectedObject()));
+
+function bringToFront(o) { o.zIndex = frame().objects.reduce((m, x) => Math.max(m, x.zIndex), 0) + 1; }
+function sendToBack(o)   { o.zIndex = frame().objects.reduce((m, x) => Math.min(m, x.zIndex), 0) - 1; }
+
+$("#btnFront").addEventListener("click", () => {
+  const o = selectedObject(); if (!o) return;
+  bringToFront(o); renderLayers(); render(); scheduleThumbs(); scheduleAutosave();
+});
+$("#btnBack").addEventListener("click", () => {
+  const o = selectedObject(); if (!o) return;
+  sendToBack(o); renderLayers(); render(); scheduleThumbs(); scheduleAutosave();
+});
+$("#btnCopyObj").addEventListener("click", () => {
+  const o = selectedObject(); if (!o) return;
+  const copy = { ...o, id: uid(), x: o.x + 24, y: o.y + 24, zIndex: nextZIndex() };
+  frame().objects.push(copy); selectedId = copy.id;
+  syncPropsPanel(); renderLayers(); render(); scheduleThumbs(); scheduleAutosave();
+  toast("Objeto duplicado", "ok", 900);
+});
+$("#btnDelObj").addEventListener("click", deleteSelectedObject);
+
+function deleteSelectedObject() {
+  const o = selectedObject(); if (!o) return;
+  const fr = frame();
+  fr.objects = fr.objects.filter((x) => x.id !== o.id);
+  selectedId = null;
+  syncPropsPanel(); renderLayers(); render(); scheduleThumbs(); scheduleAutosave();
+}
+
+/* ------------------------------------------------------------------ */
+/* 9. CARGA DE RECURSOS (imágenes, fondo, audio)                       */
+/* ------------------------------------------------------------------ */
+$("#fileImages").addEventListener("change", async (e) => {
+  const files = Array.from(e.target.files || []);
+  for (const f of files) {
+    try {
+      const src = await fileToDataURL(f);
+      const asset = { id: uid(), name: f.name, src };
+      project.assets.push(asset);
+      await loadImage(src);
+      addAssetToFrame(asset); // inserta directamente en el cuadro actual
+    } catch (err) { toast("Error al cargar " + f.name, "err"); }
+  }
+  e.target.value = "";
+  renderAssets(); renderLayers(); render(); scheduleThumbs(); scheduleAutosave();
+  if (files.length) toast(files.length + " imagen(es) añadida(s)", "ok");
+});
+
+/** Inserta un recurso en el cuadro actual, centrado y ajustado al lienzo. */
+function addAssetToFrame(asset) {
+  const img = imageCache.get(asset.src);
+  const nw = (img && img.naturalWidth) || 300;
+  const nh = (img && img.naturalHeight) || 300;
+  const maxW = CW * 0.6, maxH = CH * 0.6;
+  const scale = Math.min(1, maxW / nw, maxH / nh);
+  const w = nw * scale, h = nh * scale;
+  const obj = {
+    id: uid(), src: asset.src,
+    x: round((CW - w) / 2), y: round((CH - h) / 2),
+    width: round(w), height: round(h),
+    baseW: round(w), baseH: round(h),
+    rotation: 0, zIndex: nextZIndex(), name: asset.name,
+    opacity: 1, flipX: false
+  };
+  frame().objects.push(obj);
+  selectedId = obj.id;
+  syncPropsPanel(); renderLayers(); dirtyThumbs = true; scheduleThumbs(); scheduleAutosave();
+}
+
+$("#fileBg").addEventListener("change", async (e) => {
+  const files = Array.from(e.target.files || []);
+  if (!files.length) return;
+  let lastId = null;
+  for (const f of files) {
+    try {
+      const src = await fileToDataURL(f);
+      await loadImage(src);
+      const entry = { id: uid(), name: f.name, src };
+      project.backgrounds.push(entry);
+      lastId = entry.id;
+    } catch (_) { toast("Error al cargar " + f.name, "err"); }
+  }
+  e.target.value = "";
+  if (lastId) assignBg({ type: "image", imageId: lastId });
+  else { renderBackgrounds(); syncBgPanel(); }
+  toast(files.length + " fondo(s) añadido(s) a la biblioteca", "ok");
+});
+
+$("#bgColor").addEventListener("input", (e) => {
+  assignBg({ type: "color", color: e.target.value, imageId: null });
+});
+
+$("#btnClearBg").addEventListener("click", () => {
+  assignBg({ type: "color", imageId: null });
+  toast("Este cuadro usará solo color de fondo", "ok", 900);
+});
+
+/** Asigna un fondo al cuadro actual y lo propaga a los siguientes (herencia). */
+function assignBg(patch) {
+  if (isPlaying || isExporting) return;
+  const f = frame();
+  f.bg = { ...f.bg, ...patch, override: true };
+  if ($("#bgPropagate").checked) {
+    for (let i = currentFrame + 1; i < project.frames.length; i++) {
+      const nf = project.frames[i];
+      if (nf.bg && nf.bg.override) break;   // un cuadro con fondo propio corta la herencia
+      nf.bg = { ...f.bg, override: false };
+    }
+  }
+  renderBackgrounds(); syncBgPanel(); render(); scheduleThumbs(); scheduleAutosave();
+}
+
+function renderBackgrounds() {
+  const grid = $("#bgGrid");
+  if (!grid) return;
+  grid.innerHTML = "";
+  if (!project.backgrounds.length) {
+    grid.innerHTML = '<p class="empty-note" style="grid-column:1/-1">Sin fondos en la biblioteca.</p>';
+    return;
+  }
+  const cur = frame().bg;
+  project.backgrounds.forEach((b) => {
+    const el = document.createElement("div");
+    el.className = "bg-tile" + (cur.type === "image" && cur.imageId === b.id ? " active" : "");
+    el.title = b.name + "\n(clic para asignar a este cuadro)";
+    const img = document.createElement("img"); img.alt = ""; img.src = b.src;
+    const del = document.createElement("button");
+    del.className = "del"; del.textContent = "×"; del.title = "Eliminar de la biblioteca";
+    del.addEventListener("click", (ev) => { ev.stopPropagation(); deleteBackground(b); });
+    el.append(img, del);
+    el.addEventListener("click", () => {
+      assignBg({ type: "image", imageId: b.id });
+      toast("Fondo asignado: " + b.name, "ok", 900);
+    });
+    grid.appendChild(el);
+  });
+}
+
+function deleteBackground(b) {
+  project.backgrounds = project.backgrounds.filter((x) => x.id !== b.id);
+  project.frames.forEach((f) => {
+    if (f.bg && f.bg.imageId === b.id) f.bg = { ...f.bg, type: "color", imageId: null };
+  });
+  renderBackgrounds(); syncBgPanel(); render(); scheduleThumbs(); scheduleAutosave();
+  toast("Fondo eliminado de la biblioteca", "ok", 900);
+}
+
+/** Refleja en el panel el fondo del cuadro activo y su estado de herencia. */
+function syncBgPanel() {
+  const bg = frame().bg || DEFAULT_BG;
+  $("#bgColor").value = /^#[0-9a-f]{6}$/i.test(bg.color || "") ? bg.color : "#ffffff";
+  const entry = bg.type === "image" ? project.backgrounds.find((b) => b.id === bg.imageId) : null;
+  const state = bg.override ? "🎯 Definido en este cuadro" : "↳ Heredado del cuadro anterior";
+  $("#bgState").textContent = state + (entry ? " · 🖼️ " + entry.name : " · 🎨 color de fondo");
+}
+
+$("#fileAudio").addEventListener("change", async (e) => {
+  const f = e.target.files && e.target.files[0];
+  if (!f) return;
+  const src = await fileToDataURL(f);
+  project.audio = { name: f.name, src };
+  // Se recrea el elemento de audio: WebAudio solo permite un MediaElementSource por nodo
+  resetWebAudioGraph();
+  e.target.value = "";
+  $("#audioInfo").textContent = "🎵 " + f.name;
+  scheduleAutosave();
+  toast("Audio cargado: " + f.name, "ok");
+});
+
+$("#btnAudioPlay").addEventListener("click", () => {
+  if (!audioEl.src) { toast("No hay audio cargado", "warn"); return; }
+  if (audioEl.paused) { audioEl.currentTime = 0; audioEl.play().catch(() => {}); toast("Reproduciendo audio", "ok", 900); }
+  else { audioEl.pause(); }
+});
+
+$("#btnAudioDel").addEventListener("click", () => {
+  project.audio = { name: "", src: "" };
+  resetWebAudioGraph();
+  $("#audioInfo").textContent = "Sin audio cargado. Se reproducirá sincronizado al pulsar Play o Exportar.";
+  scheduleAutosave();
+  toast("Audio eliminado", "ok", 900);
+});
+
+/** Reinicia el grafo de WebAudio y recrea el elemento <audio> del proyecto. */
+function resetWebAudioGraph() {
+  try {
+    if (mediaElementSource) mediaElementSource.disconnect();
+    if (mediaStreamDest) mediaStreamDest.disconnect();
+  } catch (_) {}
+  mediaElementSource = null; mediaStreamDest = null;
+  audioEl.pause();
+  audioEl = new Audio();
+  audioEl.preload = "auto";
+  audioEl.loop = false;
+  if (project && project.audio && project.audio.src) audioEl.src = project.audio.src;
+}
+
+/* ------------------------------------------------------------------ */
+/* 10. GALERÍA DE RECURSOS                                             */
+/* ------------------------------------------------------------------ */
+function renderAssets() {
+  const grid = $("#assetGrid");
+  grid.innerHTML = "";
+  if (!project.assets.length) {
+    grid.innerHTML = '<p class="empty-note" style="grid-column:1/-1">Sin recursos todavía.</p>';
+    return;
+  }
+  project.assets.forEach((a) => {
+    const el = document.createElement("div");
+    el.className = "asset";
+    el.title = a.name + "\n(clic para insertar)";
+    el.innerHTML =
+      `<img src="${a.src}" alt="">
+       ${a.originalSrc ? '<span class="badge-bg" title="Fondo eliminado">✂</span>' : ""}
+       <div class="tools">
+         <button class="wand" title="🪄 Quitar fondo de esta imagen">🪄</button>
+         ${a.originalSrc ? '<button class="restore" title="↺ Restaurar fondo original">↺</button>' : ""}
+       </div>
+       <span class="name"></span>
+       <button class="del" title="Eliminar recurso">×</button>`;
+    el.querySelector(".name").textContent = a.name;
+    el.addEventListener("click", (ev) => {
+      if (ev.target.classList.contains("del") ||
+          ev.target.classList.contains("wand") ||
+          ev.target.classList.contains("restore")) return;
+      addAssetToFrame(a);
+      render(); scheduleThumbs(); scheduleAutosave();
+      toast("Insertado en el cuadro actual", "ok", 900);
+    });
+    el.querySelector(".del").addEventListener("click", (ev) => {
+      ev.stopPropagation();
+      project.assets = project.assets.filter((x) => x.id !== a.id);
+      renderAssets(); scheduleAutosave();
+    });
+    el.querySelector(".wand").addEventListener("click", (ev) => {
+      ev.stopPropagation();
+      openRemoveBg({ type: "asset", id: a.id, name: a.name, src: a.src });
+    });
+    const restoreTile = el.querySelector(".restore");
+    if (restoreTile) restoreTile.addEventListener("click", (ev) => {
+      ev.stopPropagation();
+      restoreAssetBackground(a);
+    });
+    grid.appendChild(el);
+  });
+}
+
+/* ------------------------------------------------------------------ */
+/* 10-TER. LISTA DE CAPAS / OBJETOS DEL CUADRO                         */
+/* ------------------------------------------------------------------ */
+/** Redibuja el panel de capas con el objeto de mayor zIndex arriba. */
+function renderLayers() {
+  const list = $("#layerList");
+  if (!list) return;
+  list.innerHTML = "";
+  $("#layerCount").textContent = frame().objects.length;
+
+  const objs = [...frame().objects].sort((a, b) => b.zIndex - a.zIndex);
+  if (!objs.length) {
+    list.innerHTML = '<p class="empty-note">Sin objetos en este cuadro.</p>';
+    return;
+  }
+
+  objs.forEach((o) => {
+    const row = document.createElement("div");
+    row.className = "layer-row" + (o.id === selectedId ? " active" : "");
+    row.dataset.id = o.id;
+    row.innerHTML =
+      `<div class="layer-thumb"><img alt=""></div>
+       <input class="layer-name" type="text" spellcheck="false" title="Renombrar capa" />
+       <div class="layer-actions">
+         <button data-act="front" title="Traer al frente">⤒</button>
+         <button data-act="back" title="Enviar al fondo">⤓</button>
+         <button data-act="dup" title="Duplicar">⧉</button>
+         <button data-act="flip" title="Voltear horizontalmente">⇋</button>
+         <button data-act="del" class="danger" title="Eliminar">✕</button>
+       </div>`;
+    row.querySelector("img").src = o.src;
+    const nameInput = row.querySelector(".layer-name");
+    nameInput.value = o.name || "";
+
+    // Al enfocar/renombrar no rehacemos la lista (evita perder el foco)
+    nameInput.addEventListener("focus", () => {
+      selectedId = o.id;
+      syncPropsPanel();
+      render();
+    });
+    nameInput.addEventListener("input", () => {
+      o.name = nameInput.value;
+      if (selectedId === o.id) $("#propName").value = o.name;
+      scheduleAutosave();
+    });
+    nameInput.addEventListener("click", (e) => e.stopPropagation());
+
+    row.addEventListener("click", (e) => {
+      if (e.target.tagName === "INPUT" || e.target.tagName === "BUTTON") return;
+      selectObject(o.id);
+    });
+
+    row.querySelectorAll("button").forEach((btn) => {
+      btn.addEventListener("click", (e) => {
+        e.stopPropagation();
+        const act = btn.dataset.act;
+        if (act === "front") bringToFront(o);
+        else if (act === "back") sendToBack(o);
+        else if (act === "dup") {
+          const copy = { ...o, id: uid(), x: o.x + 24, y: o.y + 24, zIndex: nextZIndex() };
+          frame().objects.push(copy); selectedId = copy.id;
+          toast("Objeto duplicado", "ok", 900);
+        }
+        else if (act === "flip") toggleFlip(o);
+        else if (act === "del") {
+          frame().objects = frame().objects.filter((x) => x.id !== o.id);
+          if (selectedId === o.id) selectedId = null;
+        }
+        renderLayers(); syncPropsPanel(); render(); scheduleThumbs(); scheduleAutosave();
+      });
+    });
+    list.appendChild(row);
+  });
+}
+
+/** Selecciona un objeto desde el canvas o desde la lista de capas. */
+function selectObject(id) {
+  selectedId = id;
+  syncPropsPanel();
+  renderLayers();
+  render();
+}
+
+/* ------------------------------------------------------------------ */
+/* 10-QUATER. SECUENCIAS DE POSES, SPRITESHEETS Y ESTAMPADO            */
+/* ------------------------------------------------------------------ */
+
+/* --- Poses base vectoriales (stickman) incrustadas --- */
+function stickmanSVG(p) {
+  const color = "#2f2f45";
+  const L = (a, b) => `<line x1="${a[0]}" y1="${a[1]}" x2="${b[0]}" y2="${b[1]}"/>`;
+  const svg =
+    `<svg xmlns="http://www.w3.org/2000/svg" width="200" height="300" viewBox="0 0 200 300">` +
+      `<g stroke="${color}" stroke-width="11" stroke-linecap="round" fill="none">` +
+        L(p.hip, p.neck) +
+        L(p.neck, p.lElbow) + L(p.lElbow, p.lHand) +
+        L(p.neck, p.rElbow) + L(p.rElbow, p.rHand) +
+        L(p.hip, p.lKnee) + L(p.lKnee, p.lFoot) +
+        L(p.hip, p.rKnee) + L(p.rKnee, p.rFoot) +
+      `</g>` +
+      `<circle cx="${p.head[0]}" cy="${p.head[1]}" r="18" fill="${color}"/>` +
+    `</svg>`;
+  return svg;
+}
+function svgToDataURL(svg) {
+  return "data:image/svg+xml;charset=utf-8," + encodeURIComponent(svg);
+}
+
+/** Genera las secuencias integradas: idle, caminar, correr, saltar, golpe, patada y combo. */
+function buildBuiltinSequences() {
+  const P = (head, neck, hip, lE, lH, rE, rH, lK, lF, rK, rF) =>
+    ({ head, neck, hip, lElbow: lE, lHand: lH, rElbow: rE, rHand: rH, lKnee: lK, lFoot: lF, rKnee: rK, rFoot: rF });
+
+  const stand = P([100,46],[100,80],[100,166],[78,116],[66,150],[122,116],[134,150],[84,220],[78,278],[116,220],[122,278]);
+  const idle2 = P([100,46],[100,80],[100,166],[76,116],[62,144],[124,116],[138,144],[84,220],[78,278],[116,220],[122,278]);
+
+  const walk1 = P([100,48],[100,82],[100,168],[80,116],[64,146],[122,114],[140,140],[120,218],[138,270],[78,218],[60,266]);
+  const walk2 = P([100,50],[100,84],[100,170],[84,120],[74,152],[118,118],[128,152],[92,222],[88,280],[110,220],[116,276]);
+  const walk3 = P([100,48],[100,82],[100,168],[78,114],[60,140],[120,116],[136,146],[78,218],[60,266],[120,218],[138,270]);
+  const walk4 = P([100,50],[100,84],[100,170],[82,118],[72,152],[116,120],[126,152],[90,220],[84,276],[112,222],[116,280]);
+
+  const run1 = P([114,48],[106,84],[96,164],[76,104],[60,78],[130,110],[150,90],[76,210],[52,256],[124,206],[146,246]);
+  const run2 = P([108,50],[102,86],[100,166],[82,112],[72,144],[124,114],[136,144],[92,216],[86,276],[112,202],[126,250]);
+  const run3 = P([86,48],[94,84],[104,164],[70,110],[50,90],[124,104],[140,78],[76,206],[54,246],[124,210],[148,256]);
+  const run4 = P([92,50],[98,86],[100,166],[76,114],[64,144],[118,112],[128,144],[88,202],[74,250],[108,216],[114,276]);
+
+  const jump1 = P([100,82],[100,114],[100,188],[72,134],[50,154],[128,134],[150,154],[70,234],[86,272],[130,234],[114,272]);
+  const jump2 = P([100,30],[100,62],[100,150],[74,88],[56,50],[126,88],[144,50],[88,208],[84,278],[112,208],[116,278]);
+  const jump3 = P([100,52],[100,84],[100,160],[66,100],[46,74],[134,100],[154,74],[74,200],[98,222],[126,200],[102,222]);
+  const jump4 = P([102,80],[102,112],[102,186],[70,126],[46,142],[134,126],[158,142],[72,232],[88,270],[132,232],[116,270]);
+
+  const guard  = P([100,50],[100,84],[100,168],[78,114],[96,104],[122,114],[104,104],[84,220],[68,276],[116,220],[132,274]);
+  const punch1 = P([100,50],[100,84],[100,168],[78,112],[96,102],[112,112],[96,96],[84,220],[68,276],[116,220],[132,274]);
+  const punch2 = P([106,52],[104,86],[104,168],[80,112],[98,102],[140,94],[182,88],[86,220],[66,274],[122,222],[142,276]);
+  const kick2  = P([100,52],[100,86],[100,168],[76,112],[94,102],[124,114],[108,104],[88,222],[80,278],[140,178],[118,146]);
+  const kick3  = P([96,52],[98,86],[98,168],[70,108],[46,98],[126,116],[152,138],[84,222],[72,278],[152,182],[190,170]);
+
+  const defs = [
+    { id: "builtin-idle",  name: "🧍 Parado / Idle",  poses: [stand, idle2] },
+    { id: "builtin-walk",  name: "🚶 Caminar",        poses: [walk1, walk2, walk3, walk4] },
+    { id: "builtin-run",   name: "🏃 Correr",         poses: [run1, run2, run3, run4] },
+    { id: "builtin-jump",  name: "🦘 Saltar",         poses: [jump1, jump2, jump3, jump4] },
+    { id: "builtin-punch", name: "👊 Golpe",          poses: [guard, punch1, punch2, guard] },
+    { id: "builtin-kick",  name: "🦵 Patada",         poses: [guard, kick2, kick3, guard] },
+    { id: "builtin-fight", name: "🥊 Pelea (combo)",  poses: [guard, punch2, guard, kick2, kick3, guard] }
+  ];
+
+  return defs.map((s) => ({
+    id: s.id, name: s.name, builtin: true,
+    poses: s.poses.map((p) => svgToDataURL(stickmanSVG(p)))
+  }));
+}
+
+/** Asegura que las secuencias integradas existan/estén actualizadas. */
+function ensureBuiltinSequences(p) {
+  if (!Array.isArray(p.sequences)) p.sequences = [];
+  buildBuiltinSequences().forEach((b) => {
+    const i = p.sequences.findIndex((s) => s.id === b.id);
+    if (i >= 0) p.sequences[i] = b;
+    else p.sequences.push(b);
+  });
+}
+
+function ensureActiveSequence() {
+  if (!project.sequences.length) { activeSequenceId = null; return; }
+  if (!project.sequences.some((s) => s.id === activeSequenceId)) {
+    activeSequenceId = project.sequences[0].id;
+  }
+}
+
+/** Lista de secuencias con selección y eliminación (las integradas no se borran). */
+function renderSequences() {
+  const list = $("#sequenceList");
+  if (!list) return;
+  ensureActiveSequence();
+  list.innerHTML = "";
+  if (!project.sequences.length) {
+    list.innerHTML = '<p class="empty-note">Sin secuencias.</p>';
+    return;
+  }
+  project.sequences.forEach((seq) => {
+    const row = document.createElement("div");
+    row.className = "seq-row" + (seq.id === activeSequenceId ? " active" : "");
+    row.title = "Clic para seleccionar esta secuencia";
+    row.innerHTML = `<div class="seq-info"><b></b><small></small></div>` +
+      (seq.builtin ? "" : `<button class="del" title="Eliminar secuencia">×</button>`);
+    row.querySelector("b").textContent = seq.name;
+    row.querySelector("small").textContent =
+      seq.poses.length + (seq.poses.length === 1 ? " pose" : " poses") + (seq.builtin ? " · integrada" : "");
+    row.addEventListener("click", (e) => {
+      if (e.target.classList.contains("del")) return;
+      activeSequenceId = seq.id;
+      renderSequences();
+    });
+    const del = row.querySelector(".del");
+    if (del) del.addEventListener("click", (e) => {
+      e.stopPropagation();
+      project.sequences = project.sequences.filter((s) => s.id !== seq.id);
+      if (activeSequenceId === seq.id) activeSequenceId = null;
+      renderSequences(); scheduleAutosave();
+      toast("Secuencia eliminada", "ok", 900);
+    });
+    list.appendChild(row);
+  });
+}
+
+/** Crea un objeto nuevo con una pose, centrado y ajustado al lienzo. */
+function makePoseObject(src, objects) {
+  const img = imageCache.get(src);
+  const nw = (img && img.naturalWidth) || 200;
+  const nh = (img && img.naturalHeight) || 300;
+  const scale = Math.min(1, (CW * 0.38) / nw, (CH * 0.72) / nh);
+  const w = round(nw * scale), h = round(nh * scale);
+  return {
+    id: uid(), src,
+    x: round((CW - w) / 2), y: round((CH - h) / 2),
+    width: w, height: h, baseW: w, baseH: h,
+    rotation: 0, zIndex: objects.reduce((m, o) => Math.max(m, o.zIndex), 0) + 1,
+    name: "Personaje", opacity: 1, flipX: false
+  };
+}
+
+/** Reemplaza la imagen de un objeto por una pose, conservando centro y alto. */
+function applyPoseToObject(o, src) {
+  const img = imageCache.get(src);
+  const cx = o.x + o.width / 2, cy = o.y + o.height / 2;
+  if (img && img.naturalWidth && img.naturalHeight) {
+    const ratio = img.naturalWidth / img.naturalHeight;
+    const h = Math.max(MIN_SIZE, o.height);
+    const w = Math.max(MIN_SIZE, h * ratio);
+    o.width = round(w); o.height = round(h);
+    o.baseW = round(w); o.baseH = round(h);
+    o.x = round(cx - w / 2); o.y = round(cy - h / 2);
+  }
+  o.src = src;
+  delete o.originalSrc;
+}
+
+/** Asistente "Pose-to-Frame Stamping": crea cuadros consecutivos con la secuencia. */
+async function stampSequence() {
+  if (isPlaying || isExporting) return;
+  const seq = project.sequences.find((s) => s.id === activeSequenceId);
+  if (!seq || !seq.poses.length) { toast("Selecciona una secuencia", "warn"); return; }
+
+  const hold = clamp(parseInt($("#poseHold").value, 10) || 1, 1, 12);
+  const sel = selectedObject();
+  const base = frame();
+
+  for (const src of seq.poses) await loadImage(src);
+
+  const insertAt = currentFrame + 1;
+  const newFrames = [];
+  seq.poses.forEach((poseSrc) => {
+    for (let k = 0; k < hold; k++) {
+      const nf = {
+        bg: { ...base.bg, override: false },
+        objects: base.objects.map((o) => ({ ...o }))
+      };
+      if (sel) {
+        const target = nf.objects.find((o) => o.id === sel.id);
+        if (target) applyPoseToObject(target, poseSrc);
+        else nf.objects.push(makePoseObject(poseSrc, nf.objects));
+      } else {
+        nf.objects.push(makePoseObject(poseSrc, nf.objects));
+      }
+      newFrames.push(nf);
+    }
+  });
+
+  project.frames.splice(insertAt, 0, ...newFrames);
+  currentFrame = insertAt;
+  selectedId = sel ? sel.id : null;
+  refreshAll(); scheduleAutosave();
+  toast("Secuencia insertada: " + seq.name + " · " + newFrames.length + " cuadros", "ok");
+}
+
+/* --- Carga de secuencias personalizadas --- */
+$("#filePoses").addEventListener("change", async (e) => {
+  const files = Array.from(e.target.files || []).sort((a, b) =>
+    a.name.localeCompare(b.name, undefined, { numeric: true }));
+  if (!files.length) return;
+  const name = $("#seqName").value.trim() || files[0].name.replace(/\.[^.]+$/, "") + " (secuencia)";
+  const poses = [];
+  for (const f of files) {
+    try { const src = await fileToDataURL(f); poses.push(src); await loadImage(src); }
+    catch (_) { toast("Error al cargar " + f.name, "err"); }
+  }
+  if (!poses.length) return;
+  const seq = { id: uid(), name, builtin: false, poses };
+  project.sequences.push(seq);
+  activeSequenceId = seq.id;
+  $("#seqName").value = "";
+  e.target.value = "";
+  renderSequences(); scheduleAutosave();
+  toast("Secuencia creada: " + name + " (" + poses.length + " poses)", "ok");
+});
+
+$("#fileSheet").addEventListener("change", async (e) => {
+  const f = e.target.files && e.target.files[0];
+  if (!f) return;
+  const cols = clamp(parseInt($("#sheetCols").value, 10) || 1, 1, 64);
+  const name = $("#seqName").value.trim() || f.name.replace(/\.[^.]+$/, "") + " (spritesheet)";
+  const src = await fileToDataURL(f);
+  const img = await loadImage(src);
+  if (!img || !img.naturalWidth) { toast("No se pudo cargar el spritesheet", "err"); return; }
+
+  const fw = Math.floor(img.naturalWidth / cols);
+  const fh = img.naturalHeight;
+  if (fw < 1) { toast("Número de columnas inválido", "err"); return; }
+
+  const c = document.createElement("canvas");
+  c.width = fw; c.height = fh;
+  const cc = c.getContext("2d");
+  const poses = [];
+  for (let i = 0; i < cols; i++) {
+    cc.clearRect(0, 0, fw, fh);
+    cc.drawImage(img, i * fw, 0, fw, fh, 0, 0, fw, fh);
+    const data = c.toDataURL("image/png");
+    poses.push(data);
+    await loadImage(data);
+  }
+  const seq = { id: uid(), name, builtin: false, poses };
+  project.sequences.push(seq);
+  activeSequenceId = seq.id;
+  $("#seqName").value = "";
+  e.target.value = "";
+  renderSequences(); scheduleAutosave();
+  toast("Spritesheet dividido en " + cols + " poses", "ok");
+});
+
+$("#btnStampInsert").addEventListener("click", stampSequence);
+
+/* ------------------------------------------------------------------ */
+/* 10-BIS. QUITAR FONDO (CHROMA KEY / COLOR KEYING CON CANVAS 2D)      */
+/* ------------------------------------------------------------------ */
+/**
+ * Herramienta de eliminación de fondo 100% client-side. Analiza los píxeles
+ * con getImageData(), vuelve transparentes (alpha = 0) los que coinciden con
+ * el color clave dentro de una tolerancia y aplica un suavizado en los bordes.
+ */
+const rembg = {
+  open: false, targetType: null, targetId: null, originalSrc: null,
+  img: null, scale: 1,
+  fullCanvas: null, fullData: null,        // imagen a resolución completa (para aplicar)
+  previewCanvas: null, previewCtx: null, previewData: null, // versión reducida (vista previa)
+  key: { r: 255, g: 255, b: 255 }, tolerance: 25, softness: 15
+};
+let rembgRaf = null;
+
+/* --- Utilidades de color --- */
+function rgbToHex(c) {
+  const h = (v) => clamp(Math.round(v), 0, 255).toString(16).padStart(2, "0");
+  return "#" + h(c.r) + h(c.g) + h(c.b);
+}
+function hexToRgb(hex) {
+  const m = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
+  return m ? { r: parseInt(m[1], 16), g: parseInt(m[2], 16), b: parseInt(m[3], 16) } : { r: 0, g: 0, b: 0 };
+}
+
+/** Abre la herramienta. `target` = {type:'asset'|'object', id, name, src}. */
+async function openRemoveBg(target) {
+  const img = await loadImage(target.src);
+  if (!img || !img.naturalWidth) { toast("No se pudo cargar la imagen", "err"); return; }
+
+  rembg.targetType = target.type;
+  rembg.targetId   = target.id;
+  rembg.originalSrc = target.src;
+  rembg.img = img;
+
+  const nw = img.naturalWidth, nh = img.naturalHeight;
+
+  // 1) Copia a resolución completa (se usará al aplicar)
+  rembg.fullCanvas = document.createElement("canvas");
+  rembg.fullCanvas.width = nw; rembg.fullCanvas.height = nh;
+  const fctx = rembg.fullCanvas.getContext("2d", { willReadFrequently: true });
+  fctx.drawImage(img, 0, 0);
+  rembg.fullData = fctx.getImageData(0, 0, nw, nh);
+
+  // 2) Copia reducida para la vista previa interactiva
+  const maxDim = 640;
+  rembg.scale = Math.min(1, maxDim / nw, maxDim / nh);
+  const pw = Math.max(1, Math.round(nw * rembg.scale));
+  const ph = Math.max(1, Math.round(nh * rembg.scale));
+  rembg.previewCanvas = document.createElement("canvas");
+  rembg.previewCanvas.width = pw; rembg.previewCanvas.height = ph;
+  rembg.previewCanvas.id = "rembgCanvas";
+  rembg.previewCtx = rembg.previewCanvas.getContext("2d", { willReadFrequently: true });
+  rembg.previewCtx.drawImage(img, 0, 0, pw, ph);
+  rembg.previewData = rembg.previewCtx.getImageData(0, 0, pw, ph);
+
+  // Color inicial = esquina superior izquierda
+  pickRembgColor(0, 0);
+
+  const holder = $("#rembgCanvasHolder");
+  holder.innerHTML = "";
+  holder.appendChild(rembg.previewCanvas);
+
+  $("#rembgTolerance").value = rembg.tolerance;
+  $("#rembgSoftness").value  = rembg.softness;
+  updateRembgLabels();
+  updateRembgSwatch();
+  // Marca el preset de tolerancia que coincida con el valor actual
+  $$(".preset-row .preset").forEach((b) =>
+    b.classList.toggle("active", parseInt(b.dataset.tol, 10) === rembg.tolerance));
+
+  // ¿Existe un fondo original guardado para poder restaurar?
+  const hasOrig = target.type === "asset"
+    ? !!(project.assets.find((a) => a.id === target.id) || {}).originalSrc
+    : !!(findObjectById(target.id) || {}).originalSrc;
+  $("#rembgRestore").disabled = !hasOrig;
+
+  renderRembgPreview();
+  $("#rembgBack").classList.add("show");
+  rembg.open = true;
+}
+
+function closeRembg() {
+  rembg.open = false;
+  $("#rembgBack").classList.remove("show");
+  $("#rembgCanvasHolder").innerHTML = "";
+}
+
+/** Toma el color de un píxel (coordenadas de la imagen original) como color clave. */
+function pickRembgColor(nx, ny) {
+  const w = rembg.fullCanvas.width, h = rembg.fullCanvas.height;
+  const x = clamp(Math.round(nx), 0, w - 1);
+  const y = clamp(Math.round(ny), 0, h - 1);
+  const i = (y * w + x) * 4, d = rembg.fullData.data;
+  rembg.key = { r: d[i], g: d[i + 1], b: d[i + 2] };
+}
+
+function updateRembgSwatch() {
+  const c = rembg.key;
+  $("#rembgSwatch").style.background = `rgb(${c.r},${c.g},${c.b})`;
+  $("#rembgColor").value = rgbToHex(c);
+}
+function updateRembgLabels() {
+  $("#rembgTolVal").textContent = rembg.tolerance;
+  $("#rembgSoftVal").textContent = rembg.softness;
+}
+
+/**
+ * Núcleo del algoritmo de chroma key. Devuelve una COPIA procesada del
+ * ImageData de entrada (no muta el original).
+ * - Distancia euclídea en RGB. Por debajo de `tolerance` => transparente.
+ * - Entre tolerance y tolerance+softness => alpha degradado (antialias).
+ */
+function processChromaKey(srcData, key, tolerance, softness) {
+  const out = new ImageData(new Uint8ClampedArray(srcData.data), srcData.width, srcData.height);
+  const d = out.data;
+  const thr  = (tolerance / 100) * 255;   // umbral de coincidencia
+  const soft = (softness / 100) * 255;    // franja de suavizado
+  for (let i = 0; i < d.length; i += 4) {
+    if (d[i + 3] === 0) continue;         // ya transparente
+    const dr = d[i] - key.r, dg = d[i + 1] - key.g, db = d[i + 2] - key.b;
+    const dist = Math.sqrt(dr * dr + dg * dg + db * db); // 0..441
+    if (dist <= thr) d[i + 3] = 0;
+    else if (soft > 0 && dist < thr + soft) d[i + 3] = Math.round(d[i + 3] * ((dist - thr) / soft));
+  }
+  return out;
+}
+
+function renderRembgPreview() {
+  if (!rembg.open) return;
+  const out = processChromaKey(rembg.previewData, rembg.key, rembg.tolerance, rembg.softness);
+  rembg.previewCtx.putImageData(out, 0, 0);
+}
+function scheduleRembgPreview() {
+  if (rembgRaf) return;
+  rembgRaf = requestAnimationFrame(() => { rembgRaf = null; renderRembgPreview(); });
+}
+
+/** Aplica el recorte definitivo sobre la imagen a resolución completa. */
+function applyRemoveBg() {
+  const out = processChromaKey(rembg.fullData, rembg.key, rembg.tolerance, rembg.softness);
+  rembg.fullCanvas.getContext("2d").putImageData(out, 0, 0);
+  const newSrc = rembg.fullCanvas.toDataURL("image/png");
+
+  if (rembg.targetType === "asset") {
+    const asset = project.assets.find((a) => a.id === rembg.targetId);
+    if (asset) {
+      if (!asset.originalSrc) asset.originalSrc = asset.src; // conserva el original
+      const oldSrc = asset.src;
+      asset.src = newSrc;
+      asset.bgRemoved = true;
+      // Reemplaza la imagen en todos los objetos que la usaban
+      project.frames.forEach((f) => f.objects.forEach((o) => { if (o.src === oldSrc) o.src = newSrc; }));
+      loadImage(newSrc);
+      renderAssets();
+    }
+  } else {
+    const o = findObjectById(rembg.targetId);
+    if (o) {
+      if (!o.originalSrc) o.originalSrc = rembg.originalSrc;
+      o.src = newSrc;
+      loadImage(newSrc);
+      syncPropsPanel();
+    }
+  }
+  closeRembg();
+  refreshAll();
+  scheduleAutosave();
+  toast("Fondo eliminado correctamente 🪄", "ok");
+}
+
+function restoreRembg() {
+  if (rembg.targetType === "asset") {
+    const asset = project.assets.find((a) => a.id === rembg.targetId);
+    if (asset && asset.originalSrc) restoreAssetBackground(asset);
+    else toast("Esta imagen no tiene un fondo eliminado", "warn");
+  } else {
+    const o = findObjectById(rembg.targetId);
+    if (o && o.originalSrc) {
+      o.src = o.originalSrc;
+      delete o.originalSrc;
+      loadImage(o.src);
+      syncPropsPanel(); renderLayers(); render(); scheduleThumbs(); scheduleAutosave();
+      toast("Fondo original restaurado", "ok");
+    } else toast("Este objeto no tiene un fondo eliminado", "warn");
+  }
+  closeRembg();
+}
+
+/** Restaura el fondo original de un RECURSO y actualiza todos los objetos que lo usan. */
+function restoreAssetBackground(asset) {
+  if (!asset.originalSrc) return;
+  const oldSrc = asset.src;
+  asset.src = asset.originalSrc;      // vuelve a la imagen original
+  asset.bgRemoved = false;
+  delete asset.originalSrc;
+  project.frames.forEach((f) => f.objects.forEach((o) => { if (o.src === oldSrc) o.src = asset.src; }));
+  loadImage(asset.src);
+  renderAssets(); renderLayers(); render(); scheduleThumbs(); scheduleAutosave();
+  toast("Fondo original restaurado", "ok");
+}
+
+function findObjectById(id) { return frame().objects.find((o) => o.id === id) || null; }
+
+/* --- Eventos de la herramienta --- */
+$("#rembgCanvasHolder").addEventListener("click", (ev) => {
+  if (ev.target.tagName !== "CANVAS" || !rembg.open) return;
+  const r = ev.target.getBoundingClientRect();
+  const px = ((ev.clientX - r.left) / r.width)  * rembg.previewCanvas.width;
+  const py = ((ev.clientY - r.top)  / r.height) * rembg.previewCanvas.height;
+  pickRembgColor(px / rembg.scale, py / rembg.scale); // coordenadas -> imagen original
+  updateRembgSwatch(); renderRembgPreview();
+});
+$("#rembgCorner").addEventListener("click", () => {
+  if (!rembg.open) return;
+  pickRembgColor(0, 0); updateRembgSwatch(); renderRembgPreview();
+});
+$("#rembgColor").addEventListener("input", (ev) => {
+  if (!rembg.open) return;
+  rembg.key = hexToRgb(ev.target.value);
+  updateRembgSwatch(); renderRembgPreview();
+});
+/** Fija la tolerancia, sincroniza el slider, el texto y el preset activo. */
+function setRembgTolerance(value) {
+  rembg.tolerance = clamp(parseInt(value, 10) || 0, 0, 100);
+  $("#rembgTolerance").value = rembg.tolerance;
+  updateRembgLabels();
+  $$(".preset-row .preset").forEach((b) =>
+    b.classList.toggle("active", parseInt(b.dataset.tol, 10) === rembg.tolerance));
+  scheduleRembgPreview();
+}
+$("#rembgTolerance").addEventListener("input", (ev) => setRembgTolerance(ev.target.value));
+$$(".preset-row .preset").forEach((btn) => {
+  btn.addEventListener("click", () => setRembgTolerance(btn.dataset.tol));
+});
+$("#rembgSoftness").addEventListener("input", (ev) => {
+  rembg.softness = parseInt(ev.target.value, 10); updateRembgLabels(); scheduleRembgPreview();
+});
+$("#rembgApply").addEventListener("click", applyRemoveBg);
+$("#rembgRestore").addEventListener("click", restoreRembg);
+$("#rembgCancel").addEventListener("click", closeRembg);
+
+/* --- Botones del panel de propiedades del objeto --- */
+$("#btnRemoveBgObj").addEventListener("click", () => {
+  const o = selectedObject();
+  if (!o) return;
+  openRemoveBg({ type: "object", id: o.id, name: o.name, src: o.src });
+});
+$("#btnRestoreBgObj").addEventListener("click", () => {
+  const o = selectedObject();
+  if (!o || !o.originalSrc) return;
+  o.src = o.originalSrc;
+  delete o.originalSrc;
+  loadImage(o.src);
+  syncPropsPanel(); renderLayers(); render(); scheduleThumbs(); scheduleAutosave();
+  toast("Fondo original restaurado", "ok");
+});
+
+/* ------------------------------------------------------------------ */
+/* 11. LÍNEA DE TIEMPO Y MINIATURAS                                    */
+/* ------------------------------------------------------------------ */
+let thumbsTimer = null;
+function scheduleThumbs() {
+  clearTimeout(thumbsTimer);
+  thumbsTimer = setTimeout(() => { renderTimeline(); dirtyThumbs = false; }, 220);
+}
+
+/** Genera la miniatura (DataURL) de un cuadro concreto. */
+function frameThumbnail(fr) {
+  thumbCtx.setTransform(1, 0, 0, 1, 0, 0);
+  thumbCtx.clearRect(0, 0, thumbCanvas.width, thumbCanvas.height);
+  const scale = Math.min(thumbCanvas.width / CW, thumbCanvas.height / CH);
+  thumbCtx.save();
+  thumbCtx.scale(scale, scale);
+  thumbCtx.fillStyle = "#ffffff";
+  thumbCtx.fillRect(0, 0, CW, CH);
+  drawFrameContent(thumbCtx, fr, true);
+  thumbCtx.restore();
+  return thumbCanvas.toDataURL("image/png");
+}
+
+function renderTimeline() {
+  const strip = $("#tlStrip");
+  strip.innerHTML = "";
+  project.frames.forEach((fr, i) => {
+    const el = document.createElement("div");
+    el.className = "thumb" + (i === currentFrame ? " active" : "");
+    el.title = "Cuadro " + (i + 1);
+    const im = document.createElement("img");
+    im.src = frameThumbnail(fr);
+    im.style.cssText = "width:100%;height:100%;object-fit:contain;background:#fff";
+    const idx = document.createElement("span"); idx.className = "idx"; idx.textContent = i + 1;
+    const cnt = document.createElement("span"); cnt.className = "cnt";
+    cnt.textContent = fr.objects.length + " obj";
+    el.append(im, idx, cnt);
+    el.addEventListener("click", () => goToFrame(i));
+    // Reordenar cuadros con drag & drop
+    el.draggable = true;
+    el.addEventListener("dragstart", (ev) => ev.dataTransfer.setData("text/plain", String(i)));
+    el.addEventListener("dragover", (ev) => ev.preventDefault());
+    el.addEventListener("drop", (ev) => {
+      ev.preventDefault();
+      const from = parseInt(ev.dataTransfer.getData("text/plain"), 10);
+      reorderFrames(from, i);
+    });
+    strip.appendChild(el);
+  });
+  // Botón "+" al final
+  const add = document.createElement("div");
+  add.className = "thumb-add"; add.textContent = "＋"; add.title = "Nuevo cuadro en blanco";
+  add.addEventListener("click", addBlankFrame);
+  strip.appendChild(add);
+
+  // Desplaza el cuadro activo a la vista
+  const active = strip.querySelectorAll(".thumb")[currentFrame];
+  if (active) active.scrollIntoView({ block: "nearest", inline: "center", behavior: "smooth" });
+}
+
+function reorderFrames(from, to) {
+  if (from === to || isNaN(from)) return;
+  const [moved] = project.frames.splice(from, 1);
+  project.frames.splice(to, 0, moved);
+  currentFrame = to;
+  refreshAll(); scheduleAutosave();
+}
+
+/* ------------------------------------------------------------------ */
+/* 12. GESTIÓN DE CUADROS                                              */
+/* ------------------------------------------------------------------ */
+function addBlankFrame() {
+  // El nuevo cuadro hereda el fondo del actual (override = false)
+  const bg = { ...frame().bg, override: false };
+  project.frames.splice(currentFrame + 1, 0, newFrame([], bg));
+  currentFrame++;
+  selectedId = null;
+  refreshAll(); scheduleAutosave();
+}
+
+function duplicateFrame() {
+  const src = frame();
+  const copy = {
+    objects: src.objects.map((o) => ({ ...o, id: uid() })),
+    bg: { ...src.bg, override: false }
+  };
+  project.frames.splice(currentFrame + 1, 0, copy);
+  currentFrame++;
+  selectedId = null;
+  refreshAll(); scheduleAutosave();
+  toast("Cuadro duplicado", "ok", 900);
+}
+
+function deleteCurrentFrame() {
+  if (project.frames.length === 1) { toast("Debe existir al menos un cuadro", "warn"); return; }
+  project.frames.splice(currentFrame, 1);
+  currentFrame = clamp(currentFrame, 0, project.frames.length - 1);
+  selectedId = null;
+  refreshAll(); scheduleAutosave();
+}
+
+function goToFrame(i) {
+  currentFrame = clamp(i, 0, project.frames.length - 1);
+  selectedId = null;
+  stopPlayback();
+  refreshAll();
+}
+
+function refreshAll() {
+  ensureActiveSequence();
+  renderAssets();
+  renderLayers();
+  renderSequences();
+  renderBackgrounds();
+  syncBgPanel();
+  renderTimeline();
+  syncPropsPanel();
+  render();
+}
+
+/* ------------------------------------------------------------------ */
+/* 13. REPRODUCCIÓN                                                    */
+/* ------------------------------------------------------------------ */
+$("#fpsSelect").addEventListener("change", (e) => {
+  project.fps = parseInt(e.target.value, 10);
+  scheduleAutosave();
+  if (isPlaying) { stopPlayback(); startPlayback(); }
+});
+
+$("#btnPlay").addEventListener("click", () => { isPlaying ? stopPlayback() : startPlayback(); });
+$("#btnFirst").addEventListener("click", () => goToFrame(0));
+$("#btnLast").addEventListener("click",  () => goToFrame(project.frames.length - 1));
+$("#btnPrev").addEventListener("click",  () => goToFrame(currentFrame - 1));
+$("#btnNext").addEventListener("click",  () => goToFrame(currentFrame + 1));
+
+function startPlayback() {
+  if (isPlaying || isExporting || project.frames.length === 0) return;
+  isPlaying = true;
+  selectedId = null;
+  $("#btnPlay").textContent = "⏸";
+  $("#btnPlay").classList.add("playing");
+
+  // Audio sincronizado desde el inicio
+  if (audioEl.src) { try { audioEl.currentTime = 0; audioEl.play().catch(() => {}); } catch (_) {} }
+
+  const interval = 1000 / project.fps;
+  let startFrame = currentFrame >= project.frames.length - 1 ? 0 : currentFrame;
+  let last = performance.now() - interval;
+
+  playTimer = setInterval(() => {
+    let now = performance.now();
+    if (now - last >= interval - 1) {
+      last = now;
+      currentFrame = startFrame;
+      render();
+      highlightActiveThumb();
+      startFrame++;
+      if (startFrame >= project.frames.length) startFrame = 0;
+    }
+  }, Math.max(4, interval / 2));
+}
+
+function stopPlayback() {
+  if (!isPlaying) return;
+  isPlaying = false;
+  clearInterval(playTimer); playTimer = null;
+  $("#btnPlay").textContent = "▶";
+  $("#btnPlay").classList.remove("playing");
+  if (audioEl.src) audioEl.pause();
+}
+
+function highlightActiveThumb() {
+  const thumbs = $$("#tlStrip .thumb");
+  thumbs.forEach((t, i) => t.classList.toggle("active", i === currentFrame));
+  $("#badgeFrame").textContent = currentFrame + 1;
+}
+
+/* ------------------------------------------------------------------ */
+/* 14. CAPA DE CEBOLLA (controles duplicados sincronizados)            */
+/* ------------------------------------------------------------------ */
+function bindOnionToggle(a, b) {
+  const A = $(a), B = $(b);
+  A.addEventListener("change", () => { B.checked = A.checked; render(); });
+  B.addEventListener("change", () => { A.checked = B.checked; render(); });
+}
+bindOnionToggle("#onionOn", "#onionOn2");
+$("#onionNext").addEventListener("change", render);
+$("#onionOpacity").addEventListener("input", () => {
+  $("#onionOpVal").textContent = $("#onionOpacity").value;
+  render();
+});
+
+/* ------------------------------------------------------------------ */
+/* 15. EXPORTACIÓN A VIDEO (MediaRecorder + captureStream)             */
+/* ------------------------------------------------------------------ */
+function pickMimeType() {
+  const candidates = [
+    "video/webm;codecs=vp9,opus",
+    "video/webm;codecs=vp8,opus",
+    "video/webm;codecs=vp9",
+    "video/webm;codecs=vp8",
+    "video/webm",
+    "video/mp4"
+  ];
+  if (typeof MediaRecorder === "undefined") return null;
+  return candidates.find((t) => MediaRecorder.isTypeSupported(t)) || "";
+}
+
+$("#btnExport").addEventListener("click", () => {
+  if (isExporting || isPlaying) return;
+  if (project.frames.length === 0) { toast("No hay cuadros para exportar", "warn"); return; }
+  if (typeof MediaRecorder === "undefined" || !canvas.captureStream) {
+    toast("Tu navegador no soporta la exportación de video", "err");
+    return;
+  }
+  const mime = pickMimeType();
+  if (mime === null) { toast("MediaRecorder no soportado", "err"); return; }
+  startExport(mime);
+});
+
+async function startExport(mime) {
+  isExporting = true;
+  stopPlayback();
+  selectedId = null;
+  $("#badgeRec").style.display = "";
+  setButtonsDisabled(true);
+
+  const resetExportUI = () => {
+    isExporting = false;
+    $("#badgeRec").style.display = "none";
+    setButtonsDisabled(false);
+    $("#modalBack").classList.remove("show");
+    $("#modalProgress").style.display = "none";
+  };
+
+  try {
+    const fps = project.fps;
+    const totalFrames = project.frames.length;
+    const stream = canvas.captureStream(fps);
+
+    // --- Mezcla del audio (si existe) en el mismo stream ---
+    if (audioEl.src) {
+      try {
+        if (!webAudioCtx) webAudioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        if (webAudioCtx.state === "suspended") await webAudioCtx.resume();
+        if (!mediaElementSource) {
+          mediaElementSource = webAudioCtx.createMediaElementSource(audioEl);
+          mediaStreamDest = webAudioCtx.createMediaStreamDestination();
+          mediaElementSource.connect(mediaStreamDest);
+          mediaElementSource.connect(webAudioCtx.destination); // monitoreo
+        }
+        mediaStreamDest.stream.getAudioTracks().forEach((t) => stream.addTrack(t));
+      } catch (_) { /* exporta solo video si falla el audio */ }
+    }
+
+    const recorder = new MediaRecorder(stream, mime ? { mimeType: mime, videoBitsPerSecond: 6_000_000 } : undefined);
+    const chunks = [];
+    recorder.ondataavailable = (ev) => { if (ev.data && ev.data.size) chunks.push(ev.data); };
+
+    const done = new Promise((resolve) => { recorder.onstop = resolve; });
+
+    // --- Interfaz de progreso ---
+    $("#modalTitle").textContent = "Exportando video…";
+    $("#modalText").textContent = "Grabando " + totalFrames + " cuadros a " + fps + " FPS. No cierres esta ventana.";
+    $("#modalCancel").style.display = "none";
+    $("#modalOk").style.display = "none";
+    $("#modalProgress").style.display = "block";
+    $("#modalBack").classList.add("show");
+    const bar = $("#modalProgress > i");
+
+    recorder.start();
+    if (audioEl.src) { try { audioEl.currentTime = 0; await audioEl.play(); } catch (_) {} }
+
+    const frameMs = 1000 / fps;
+    for (let i = 0; i < totalFrames; i++) {
+      // Dibuja el cuadro i SIN overlays de selección
+      ctx.setTransform(1, 0, 0, 1, 0, 0);
+      ctx.clearRect(0, 0, CW, CH);
+      drawFrameContent(ctx, project.frames[i], true);
+      $("#badgeFrame").textContent = i + 1;
+      bar.style.width = Math.round(((i + 1) / totalFrames) * 100) + "%";
+      await sleep(frameMs);
+    }
+
+    // Mantiene el último cuadro un instante para asegurar que se capture
+    await sleep(Math.max(120, frameMs));
+
+    recorder.stop();
+    if (audioEl.src) audioEl.pause();
+    await done;
+    stream.getTracks().forEach((t) => t.stop());
+
+    // --- Descarga ---
+    const ext = mime.includes("mp4") ? "mp4" : "webm";
+    const blob = new Blob(chunks, { type: mime || "video/webm" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = "duckanimacion_" + new Date().toISOString().slice(0, 19).replace(/[:T]/g, "-") + "." + ext;
+    document.body.appendChild(a); a.click(); a.remove();
+    setTimeout(() => URL.revokeObjectURL(url), 4000);
+
+    resetExportUI();
+    currentFrame = 0; refreshAll();
+    toast("Video exportado (" + (blob.size / 1048576).toFixed(1) + " MB)", "ok", 2600);
+  } catch (err) {
+    resetExportUI();
+    toast("Error al exportar: " + err.message, "err", 3000);
+  }
+}
+
+function setButtonsDisabled(v) {
+  ["#btnSave","#btnLoad","#btnReset","#btnExport","#btnPlay","#btnNewFrame",
+   "#btnDupFrame","#btnDelFrame","#fileImages","#fileBg","#fileAudio",
+   "#filePoses","#fileSheet","#btnStampInsert"]
+    .forEach((s) => { const el = $(s); if (el) el.disabled = v; });
+}
+
+/* ------------------------------------------------------------------ */
+/* 16. BOTONES PRINCIPALES (guardar / cargar / reiniciar)              */
+/* ------------------------------------------------------------------ */
+$("#btnSave").addEventListener("click", () => saveProject(false));
+$("#btnLoad").addEventListener("click", () => loadProject(true));
+
+$("#btnReset").addEventListener("click", () => {
+  confirmModal("Reiniciar proyecto",
+    "Se eliminarán todos los cuadros, imágenes y el audio actuales. Esta acción no se puede deshacer.",
+    () => {
+      stopPlayback();
+      project = createDefaultProject();
+      resetWebAudioGraph();
+      currentFrame = 0; selectedId = null; activeSequenceId = null;
+      $("#fpsSelect").value = project.fps;
+      $("#audioInfo").textContent = "Sin audio cargado. Se reproducirá sincronizado al pulsar Play o Exportar.";
+      imageCache.clear();
+      refreshAll(); saveProject(true);
+      toast("Proyecto reiniciado", "ok");
+    });
+});
+
+$("#btnNewFrame").addEventListener("click", addBlankFrame);
+$("#btnDupFrame").addEventListener("click", duplicateFrame);
+$("#btnDelFrame").addEventListener("click", deleteCurrentFrame);
+
+/* ------------------------------------------------------------------ */
+/* 17. ATAJOS DE TECLADO                                               */
+/* ------------------------------------------------------------------ */
+document.addEventListener("keydown", (e) => {
+  const tag = (document.activeElement && document.activeElement.tagName) || "";
+  if (["INPUT","TEXTAREA","SELECT"].includes(tag)) return;
+  if (isExporting) return;
+
+  if (e.code === "Space") { e.preventDefault(); isPlaying ? stopPlayback() : startPlayback(); return; }
+  if (e.key === "n" || e.key === "N") { addBlankFrame(); return; }
+  if (e.key === "d" || e.key === "D") { duplicateFrame(); return; }
+  if (e.key === "f" || e.key === "F") { toggleFlip(selectedObject()); return; }
+  if (e.key === "Delete" || e.key === "Backspace") {
+    if (selectedObject()) { e.preventDefault(); deleteSelectedObject(); }
+    return;
+  }
+  // Nudge con flechas
+  const o = selectedObject();
+  if (o && ["ArrowUp","ArrowDown","ArrowLeft","ArrowRight"].includes(e.key)) {
+    e.preventDefault();
+    const step = e.shiftKey ? 10 : 1;
+    if (e.key === "ArrowUp")    o.y -= step;
+    if (e.key === "ArrowDown")  o.y += step;
+    if (e.key === "ArrowLeft")  o.x -= step;
+    if (e.key === "ArrowRight") o.x += step;
+    syncPropsPanel(); render(); scheduleThumbs(); scheduleAutosave();
+  }
+});
+
+/* ------------------------------------------------------------------ */
+/* 18. MODAL Y TOAST                                                   */
+/* ------------------------------------------------------------------ */
+let modalCallback = null;
+function confirmModal(title, text, onOk) {
+  $("#modalTitle").textContent = title;
+  $("#modalText").textContent = text;
+  $("#modalCancel").style.display = "";
+  $("#modalOk").style.display = "";
+  $("#modalProgress").style.display = "none";
+  modalCallback = onOk;
+  $("#modalBack").classList.add("show");
+}
+$("#modalCancel").addEventListener("click", () => { modalCallback = null; $("#modalBack").classList.remove("show"); });
+$("#modalOk").addEventListener("click", () => { const cb = modalCallback; modalCallback = null; $("#modalBack").classList.remove("show"); if (cb) cb(); });
+
+let toastTimer = null;
+function toast(msg, kind = "", ms = 1800) {
+  const el = $("#toast");
+  el.textContent = msg;
+  el.className = "show " + kind;
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => { el.className = kind; }, ms);
+}
+
+/* ------------------------------------------------------------------ */
+/* 19. ARRANQUE                                                        */
+/* ------------------------------------------------------------------ */
+(async function init() {
+  // Renderiza un proyecto utilizable de inmediato y luego intenta cargar el guardado.
+  project = createDefaultProject();
+  refreshAll();
+  await loadProject(false);
+  // Guarda automáticamente antes de cerrar por si hay cambios pendientes
+  window.addEventListener("beforeunload", () => { try { idbSet(KEY, project); } catch (_) {} });
+  toast("DuckAnimación listo 🦆", "ok", 1500);
+})();
+
+})();
+</script>
+</body>
+</html>
